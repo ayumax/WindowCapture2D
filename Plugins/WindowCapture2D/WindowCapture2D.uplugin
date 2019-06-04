@@ -1,0 +1,27 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "1.0.0",
+  "FriendlyName": "WindowCapture2D",
+  "Description": "Library for capturing and displaying windows in real time with UnrealEngine",
+  "Category": "Programming",
+  "CreatedBy": "ayumax",
+  "CreatedByURL": "https://github.com/ayumax",
+  "DocsURL": "https://github.com/ayumax/WindowCapture2D",
+  "MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/***",
+  "SupportURL": "",
+  "CanContainContent": true,
+  "IsBetaVersion": false,
+  "Installed": true,
+  "Modules": [
+    {
+      "Name": "WindowCapture2D",
+      "Type": "Runtime",
+      "LoadingPhase": "Default",
+      "WhitelistPlatforms": [
+        "Win64",
+        "Win32"
+      ]
+    }
+  ]
+}
