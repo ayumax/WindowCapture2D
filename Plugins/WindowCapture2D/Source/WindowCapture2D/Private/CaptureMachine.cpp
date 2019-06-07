@@ -3,46 +3,74 @@
 #include "CaptureMachine.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Engine/Texture2D.h"
+#include "Async/Async.h"
 
+#if PLATFORM_WINDOWS
+#include <dwmapi.h>
+#endif
 
 ACaptureMachine::ACaptureMachine()
 {
 	PrimaryActorTick.bCanEverTick = true;
 }
 
-void ACaptureMachine::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
 
 void ACaptureMachine::BeginDestroy()
 {
 	Super::BeginDestroy();
 
+#if PLATFORM_WINDOWS
 	if (m_hBmp)
 	{
-		DeleteObject(m_hBmp);
+		::DeleteObject(m_hBmp);
 		m_BitmapBuffer = nullptr;
 	}
+#endif
 }
 
 void ACaptureMachine::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+#if PLATFORM_WINDOWS
 	if (!TextureTarget) return;
 
-	PrintWindow(m_TargetWindow, m_MemDC, 2);
+	if (CheckWindowSize)
+	{
+		FIntVector2D oldWindowSize = m_WindowSize;
+		GetWindowSize(m_TargetWindow);
+		if (m_WindowSize != oldWindowSize)
+		{
+			ReCreateTexture();
+			ChangeTexture.Broadcast(TextureTarget);
+		}
+
+		if (!TextureTarget) return;
+	}
+
+	AsyncTask(ENamedThreads::BackgroundThreadPriority, [this]() {
+		if (CutShadow)
+		{
+			::PrintWindow(m_TargetWindow, m_OriginalMemDC, 2);
+			::BitBlt(m_MemDC, 0, 0, m_WindowSize.X, m_WindowSize.Y, m_OriginalMemDC, m_WindowOffset.X, m_WindowOffset.Y, SRCCOPY);
+		}
+		else
+		{
+			::PrintWindow(m_TargetWindow, m_MemDC, 2);
+		}
+		});
+	
 
 	UpdateTexture();
+#endif
 }
 
 UTexture2D* ACaptureMachine::CreateTexture()
 {
+#if PLATFORM_WINDOWS
 	m_TargetWindow = nullptr;
 
-	EnumWindows([](HWND hwnd, LPARAM lParam) -> BOOL
+	::EnumWindows([](HWND hwnd, LPARAM lParam) -> BOOL
 		{
 			ACaptureMachine* my = (ACaptureMachine*)lParam;
 			__wchar_t windowTitle[1024];
@@ -59,58 +87,102 @@ UTexture2D* ACaptureMachine::CreateTexture()
 
 	if (!m_TargetWindow) return nullptr;
 
-	auto targetWindowSize = GetWindowSize(m_TargetWindow);
-	HDC foundDC = GetDC(m_TargetWindow);
-	m_MemDC = CreateCompatibleDC(foundDC);
+	GetWindowSize(m_TargetWindow);
+
+	HDC foundDC = ::GetDC(m_TargetWindow);
+	m_MemDC = ::CreateCompatibleDC(foundDC);
+	if (CutShadow)
+	{
+		m_OriginalMemDC = ::CreateCompatibleDC(foundDC);
+	}
 
 	ReleaseDC(m_TargetWindow, foundDC);
 
-	ReCreateTexture(targetWindowSize);
+	ReCreateTexture();
 
 	return TextureTarget;
+#endif
+	return nullptr;
 }
 
 void ACaptureMachine::UpdateTexture()
 {
+#if PLATFORM_WINDOWS
 	if (!TextureTarget) return;
 
 	auto Region = new FUpdateTextureRegion2D(0, 0, 0, 0, TextureTarget->GetSizeX(), TextureTarget->GetSizeY());
 	TextureTarget->UpdateTextureRegions(0, 1, Region, 4 * TextureTarget->GetSizeX(), 4, (uint8*)m_BitmapBuffer);
+#endif
 }
 
-FIntVector2D ACaptureMachine::GetWindowSize(HWND hWnd)
+void ACaptureMachine::GetWindowSize(HWND hWnd)
 {
+#if PLATFORM_WINDOWS
+	if (!::IsWindow(hWnd))
+	{
+		m_OriginalWindowSize = FIntVector2D(0, 0);
+		m_WindowSize = m_OriginalWindowSize;
+		m_WindowOffset = FIntVector2D(0, 0);
+		return;
+	}
+
 	RECT rect;
-	GetWindowRect(hWnd, &rect);
+	::GetWindowRect(hWnd, &rect);
 
-	int32 width = rect.right - rect.left;
-	int32 height = rect.bottom - rect.top;
+	if (CutShadow)
+	{
+		RECT dwmWindowRect;
+		::DwmGetWindowAttribute(hWnd, DWMWA_EXTENDED_FRAME_BOUNDS, &dwmWindowRect, sizeof(RECT));
 
-	return FIntVector2D(width, height);
+		m_OriginalWindowSize = FIntVector2D(rect.right - rect.left, rect.bottom - rect.top);
+		m_WindowSize = FIntVector2D(dwmWindowRect.right - dwmWindowRect.left, dwmWindowRect.bottom - dwmWindowRect.top);
+		m_WindowOffset = FIntVector2D(dwmWindowRect.left - rect.left, dwmWindowRect.top - rect.top);
+	}
+	else
+	{
+		m_OriginalWindowSize = FIntVector2D(rect.right - rect.left, rect.bottom - rect.top);
+		m_WindowSize = m_OriginalWindowSize;
+		m_WindowOffset = FIntVector2D(0, 0);
+	}
+#endif
 }
 
-void ACaptureMachine::ReCreateTexture(FIntVector2D Size)
+void ACaptureMachine::ReCreateTexture()
 {
+#if PLATFORM_WINDOWS
 	if (m_hBmp)
 	{
-		DeleteObject(m_hBmp);
+		::DeleteObject(m_hBmp);
 		m_BitmapBuffer = nullptr;
 	}
 
-	m_BitmapBuffer = new char[Size.X * Size.Y * 4];
+	if (m_WindowSize.X == 0 || m_WindowSize.Y == 0)
+	{
+		TextureTarget = nullptr;
+		return;
+	}
 
-	TextureTarget = UTexture2D::CreateTransient(Size.X, Size.Y, PF_B8G8R8A8);
+	m_BitmapBuffer = new char[m_WindowSize.X * m_WindowSize.Y * 4];
+
+	TextureTarget = UTexture2D::CreateTransient(m_WindowSize.X, m_WindowSize.Y, PF_B8G8R8A8);
 	TextureTarget->UpdateResource();
 
 	BITMAPINFO bmpInfo;
 	bmpInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-	bmpInfo.bmiHeader.biWidth = Size.X;
-	bmpInfo.bmiHeader.biHeight = Size.Y;
+	bmpInfo.bmiHeader.biWidth = m_WindowSize.X;
+	bmpInfo.bmiHeader.biHeight = m_WindowSize.Y;
 	bmpInfo.bmiHeader.biPlanes = 1;
 	bmpInfo.bmiHeader.biBitCount = 32;
 	bmpInfo.bmiHeader.biCompression = BI_RGB;
 
-	m_hBmp = CreateDIBSection(NULL, &bmpInfo, DIB_RGB_COLORS, (void**)&m_BitmapBuffer, NULL, 0);
+	m_hBmp = ::CreateDIBSection(NULL, &bmpInfo, DIB_RGB_COLORS, (void**)&m_BitmapBuffer, NULL, 0);
 
-	SelectObject(m_MemDC, m_hBmp);
+	::SelectObject(m_MemDC, m_hBmp);
+
+	if (CutShadow)
+	{
+		m_hOriginalBmp = ::CreateCompatibleBitmap(m_MemDC, m_OriginalWindowSize.X, m_OriginalWindowSize.Y);
+		::SelectObject(m_OriginalMemDC, m_hOriginalBmp);
+	}
+#endif
 }
