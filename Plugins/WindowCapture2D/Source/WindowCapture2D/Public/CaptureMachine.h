@@ -57,8 +57,7 @@ public:
 	ACaptureMachine();
 
 protected:
-	virtual void BeginDestroy() override;
-
+	virtual void BeginPlay() override;
 	UFUNCTION(BlueprintPure, Category = WindowCapture2D)
 	UTexture2D* CreateTexture();
 
@@ -66,10 +65,11 @@ protected:
 	void UpdateTexture();
 	void GetWindowSize(HWND hWnd);
 	void ReCreateTexture();
-	void DoCapture();
+	bool DoCapture();
 
 public:	
 	virtual void Tick(float DeltaTime) override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)
@@ -102,4 +102,8 @@ private:
 	FIntVector2D m_WindowSize;
 	FIntVector2D m_OriginalWindowSize;
 	FIntVector2D m_WindowOffset;
+
+	class FWCWorkerThread* CaptureWorkerThread = nullptr;
+	class FRunnableThread* CaptureThread = nullptr;
+
 };

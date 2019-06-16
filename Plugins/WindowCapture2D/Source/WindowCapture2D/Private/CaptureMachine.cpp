@@ -5,6 +5,8 @@
 #include "Engine/Texture2D.h"
 #include "Async/Async.h"
 #include "Internationalization/Regex.h"
+#include "Runtime/Core/Public/HAL/RunnableThread.h"
+#include "Private/Utils/WCWorkerThread.h"
 
 #if PLATFORM_WINDOWS
 #include <dwmapi.h>
@@ -15,12 +17,26 @@ ACaptureMachine::ACaptureMachine()
 	PrimaryActorTick.bCanEverTick = true;
 }
 
-
-void ACaptureMachine::BeginDestroy()
+void ACaptureMachine::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	Super::BeginDestroy();
+	Super::EndPlay(EndPlayReason);
 
 #if PLATFORM_WINDOWS
+	if (CaptureThread)
+	{
+		CaptureThread->Kill(true);
+		CaptureThread->WaitForCompletion();
+
+		delete CaptureThread;
+		CaptureThread = nullptr;	
+	}
+	
+	if (CaptureWorkerThread)
+	{
+		delete CaptureWorkerThread;
+		CaptureWorkerThread = nullptr;
+	}
+
 	if (m_hBmp)
 	{
 		::DeleteObject(m_hBmp);
@@ -48,6 +64,15 @@ void ACaptureMachine::BeginDestroy()
 #endif
 }
 
+void ACaptureMachine::BeginPlay()
+{
+	Super::BeginPlay();
+
+	CaptureWorkerThread = new FWCWorkerThread([this] { return DoCapture(); }, 0.32f);
+	CaptureThread = FRunnableThread::Create(CaptureWorkerThread, TEXT("ACaptureMachine CaptureThread"));
+
+}
+
 void ACaptureMachine::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -68,14 +93,10 @@ void ACaptureMachine::Tick(float DeltaTime)
 		if (!TextureTarget) return;
 	}
 
-	AsyncTask(ENamedThreads::BackgroundThreadPriority, [this]() { DoCapture(); });
-	
-
-	UpdateTexture();
 #endif
 }
 
-void ACaptureMachine::DoCapture()
+bool ACaptureMachine::DoCapture()
 {
 	if (CutShadow)
 	{
@@ -86,6 +107,10 @@ void ACaptureMachine::DoCapture()
 	{
 		::PrintWindow(m_TargetWindow, m_MemDC, 2);
 	}
+
+	UpdateTexture();
+
+	return true;
 }
 
 UTexture2D* ACaptureMachine::CreateTexture()
