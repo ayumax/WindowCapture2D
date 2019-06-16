@@ -4,6 +4,7 @@
 #include "Engine/TextureRenderTarget2D.h"
 #include "Engine/Texture2D.h"
 #include "Async/Async.h"
+#include "Internationalization/Regex.h"
 
 #if PLATFORM_WINDOWS
 #include <dwmapi.h>
@@ -25,6 +26,25 @@ void ACaptureMachine::BeginDestroy()
 		::DeleteObject(m_hBmp);
 		m_BitmapBuffer = nullptr;
 	}
+
+	if (m_MemDC)
+	{
+		::DeleteDC(m_MemDC);
+		m_MemDC = nullptr;
+	}
+
+	if (m_hOriginalBmp)
+	{
+		::DeleteObject(m_hOriginalBmp);
+		m_hOriginalBmp = nullptr;
+	}
+
+	if (m_OriginalMemDC)
+	{
+		::DeleteDC(m_OriginalMemDC);
+		m_OriginalMemDC = nullptr;
+	}
+
 #endif
 }
 
@@ -48,21 +68,24 @@ void ACaptureMachine::Tick(float DeltaTime)
 		if (!TextureTarget) return;
 	}
 
-	AsyncTask(ENamedThreads::BackgroundThreadPriority, [this]() {
-		if (CutShadow)
-		{
-			::PrintWindow(m_TargetWindow, m_OriginalMemDC, 2);
-			::BitBlt(m_MemDC, 0, 0, m_WindowSize.X, m_WindowSize.Y, m_OriginalMemDC, m_WindowOffset.X, m_WindowOffset.Y, SRCCOPY);
-		}
-		else
-		{
-			::PrintWindow(m_TargetWindow, m_MemDC, 2);
-		}
-		});
+	AsyncTask(ENamedThreads::BackgroundThreadPriority, [this]() { DoCapture(); });
 	
 
 	UpdateTexture();
 #endif
+}
+
+void ACaptureMachine::DoCapture()
+{
+	if (CutShadow)
+	{
+		::PrintWindow(m_TargetWindow, m_OriginalMemDC, 2);
+		::BitBlt(m_MemDC, 0, 0, m_WindowSize.X, m_WindowSize.Y, m_OriginalMemDC, m_WindowOffset.X, m_WindowOffset.Y, SRCCOPY);
+	}
+	else
+	{
+		::PrintWindow(m_TargetWindow, m_MemDC, 2);
+	}
 }
 
 UTexture2D* ACaptureMachine::CreateTexture()
@@ -73,16 +96,7 @@ UTexture2D* ACaptureMachine::CreateTexture()
 	::EnumWindows([](HWND hwnd, LPARAM lParam) -> BOOL
 		{
 			ACaptureMachine* my = (ACaptureMachine*)lParam;
-			__wchar_t windowTitle[1024];
-			GetWindowText(hwnd, windowTitle, 1024);
-			FString title(windowTitle);
-			if (title.StartsWith(my->CaptureTargetTitle, ESearchCase::IgnoreCase))
-			{
-				my->m_TargetWindow = hwnd;
-				return false;
-			}
-
-			return true;
+			return my->FindTargetWindow(hwnd);
 		}, (LPARAM)this);
 
 	if (!m_TargetWindow) return nullptr;
@@ -103,6 +117,53 @@ UTexture2D* ACaptureMachine::CreateTexture()
 	return TextureTarget;
 #endif
 	return nullptr;
+}
+
+bool ACaptureMachine::FindTargetWindow(HWND hWnd)
+{
+	__wchar_t windowTitle[1024];
+	GetWindowText(hWnd, windowTitle, 1024);
+	FString title(windowTitle);
+
+	if (title.IsEmpty()) return true;
+
+	bool isMatch = false;
+
+	switch (TitleMatchingWindowSearch)
+	{
+	case ETitleMatchingWindowSearch::PerfectMatch:
+		isMatch = title.Equals(CaptureTargetTitle, ESearchCase::IgnoreCase);
+		break;
+
+	case ETitleMatchingWindowSearch::ForwardMatch:
+		isMatch = title.StartsWith(CaptureTargetTitle, ESearchCase::IgnoreCase);
+		break;
+
+	case ETitleMatchingWindowSearch::PartialMatch:
+		isMatch = title.Contains(CaptureTargetTitle, ESearchCase::IgnoreCase);
+		break;
+
+	case ETitleMatchingWindowSearch::BackwardMatch:
+		isMatch = title.EndsWith(CaptureTargetTitle, ESearchCase::IgnoreCase);
+		break;
+
+	case ETitleMatchingWindowSearch::RegularExpression:
+		{
+			const FRegexPattern pattern = FRegexPattern(CaptureTargetTitle);
+			FRegexMatcher matcher(pattern, title);
+
+			isMatch = matcher.FindNext();
+		}
+		break;
+	}
+
+	if (isMatch)
+	{
+		m_TargetWindow = hWnd;
+		return false;
+	}
+
+	return true;
 }
 
 void ACaptureMachine::UpdateTexture()

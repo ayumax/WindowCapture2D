@@ -35,6 +35,16 @@ struct FIntVector2D
 	}
 };
 
+UENUM(BlueprintType)
+enum class ETitleMatchingWindowSearch : uint8
+{
+	PerfectMatch,
+	ForwardMatch,
+	PartialMatch,
+	BackwardMatch,
+	RegularExpression
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FCaptureMachineChangeTexture, UTexture2D*, NewTexture);
 
 
@@ -52,9 +62,11 @@ protected:
 	UFUNCTION(BlueprintPure, Category = WindowCapture2D)
 	UTexture2D* CreateTexture();
 
+	bool FindTargetWindow(HWND hWnd);
 	void UpdateTexture();
 	void GetWindowSize(HWND hWnd);
 	void ReCreateTexture();
+	void DoCapture();
 
 public:	
 	virtual void Tick(float DeltaTime) override;
@@ -62,6 +74,9 @@ public:
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)
 	FString CaptureTargetTitle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)
+	ETitleMatchingWindowSearch TitleMatchingWindowSearch = ETitleMatchingWindowSearch::ForwardMatch;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)
 	bool CheckWindowSize = false;
