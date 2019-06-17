@@ -36,10 +36,9 @@ uint32 FWCWorkerThread::Run()
 			return 0;
 		}
 
-
-		if (ContinueRun)
+		if(ContinueRun)
 		{
-			float waitTime = FMath::Max(0.01f, Seconds - (float)(FDateTime::Now() - startTime).GetTotalSeconds());
+			float waitTime = FMath::Max(0.001f, Seconds - (float)(FDateTime::Now() - startTime).GetTotalSeconds());
 			FPlatformProcess::Sleep(waitTime);
 		}
 	}

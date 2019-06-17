@@ -14,7 +14,7 @@
 
 ACaptureMachine::ACaptureMachine()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 }
 
 void ACaptureMachine::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -68,17 +68,17 @@ void ACaptureMachine::BeginPlay()
 {
 	Super::BeginPlay();
 
-	CaptureWorkerThread = new FWCWorkerThread([this] { return DoCapture(); }, 0.32f);
+#if PLATFORM_WINDOWS
+	CaptureWorkerThread = new FWCWorkerThread([this] { return DoCapture(); }, 1.0f / (float)FrameRate);
 	CaptureThread = FRunnableThread::Create(CaptureWorkerThread, TEXT("ACaptureMachine CaptureThread"));
-
+#endif
 }
 
-void ACaptureMachine::Tick(float DeltaTime)
+bool ACaptureMachine::DoCapture()
 {
-	Super::Tick(DeltaTime);
-
 #if PLATFORM_WINDOWS
-	if (!TextureTarget) return;
+	if (!m_TargetWindow) return true;
+	if (!TextureTarget) return true;
 
 	if (CheckWindowSize)
 	{
@@ -90,14 +90,10 @@ void ACaptureMachine::Tick(float DeltaTime)
 			ChangeTexture.Broadcast(TextureTarget);
 		}
 
-		if (!TextureTarget) return;
+		if (!TextureTarget) return true;
 	}
 
-#endif
-}
 
-bool ACaptureMachine::DoCapture()
-{
 	if (CutShadow)
 	{
 		::PrintWindow(m_TargetWindow, m_OriginalMemDC, 2);
@@ -109,6 +105,7 @@ bool ACaptureMachine::DoCapture()
 	}
 
 	UpdateTexture();
+#endif
 
 	return true;
 }

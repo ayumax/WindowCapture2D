@@ -68,7 +68,6 @@ protected:
 	bool DoCapture();
 
 public:	
-	virtual void Tick(float DeltaTime) override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
@@ -77,6 +76,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)
 	ETitleMatchingWindowSearch TitleMatchingWindowSearch = ETitleMatchingWindowSearch::ForwardMatch;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)
+	int32 FrameRate = 60;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)
 	bool CheckWindowSize = false;
