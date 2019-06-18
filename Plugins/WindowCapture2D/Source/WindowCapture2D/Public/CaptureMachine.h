@@ -107,5 +107,4 @@ private:
 
 	class FWCWorkerThread* CaptureWorkerThread = nullptr;
 	class FRunnableThread* CaptureThread = nullptr;
-
 };

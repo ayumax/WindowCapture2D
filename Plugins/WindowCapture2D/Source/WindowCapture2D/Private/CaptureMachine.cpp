@@ -22,6 +22,12 @@ void ACaptureMachine::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 
 #if PLATFORM_WINDOWS
+	
+	if (TextureTarget)
+	{
+		TextureTarget->ReleaseResource();
+	}
+
 	if (CaptureThread)
 	{
 		CaptureThread->Kill(true);
@@ -246,6 +252,7 @@ void ACaptureMachine::ReCreateTexture()
 	}
 
 	m_BitmapBuffer = new char[m_WindowSize.X * m_WindowSize.Y * 4];
+
 
 	TextureTarget = UTexture2D::CreateTransient(m_WindowSize.X, m_WindowSize.Y, PF_B8G8R8A8);
 	TextureTarget->UpdateResource();
