@@ -6,7 +6,7 @@
 #include "Async/Async.h"
 #include "Internationalization/Regex.h"
 #include "Runtime/Core/Public/HAL/RunnableThread.h"
-#include "Private/Utils/WCWorkerThread.h"
+#include "../Private/Utils/WCWorkerThread.h"
 
 #if PLATFORM_WINDOWS
 #include <dwmapi.h>
