@@ -75,7 +75,7 @@ void ACaptureMachine::BeginPlay()
 	Super::BeginPlay();
 
 #if PLATFORM_WINDOWS
-	CaptureWorkerThread = new FWCWorkerThread([this] { return DoCapture(); }, 1.0f / (float)FrameRate);
+	CaptureWorkerThread = new FWCWorkerThread([this] { return DoCapture(); }, 1.0f / (float)Properties.FrameRate);
 	CaptureThread = FRunnableThread::Create(CaptureWorkerThread, TEXT("ACaptureMachine CaptureThread"));
 #endif
 }
@@ -86,7 +86,7 @@ bool ACaptureMachine::DoCapture()
 	if (!m_TargetWindow) return true;
 	if (!TextureTarget) return true;
 
-	if (CheckWindowSize)
+	if (Properties.CheckWindowSize)
 	{
 		FIntVector2D oldWindowSize = m_WindowSize;
 		GetWindowSize(m_TargetWindow);
@@ -100,7 +100,7 @@ bool ACaptureMachine::DoCapture()
 	}
 
 
-	if (CutShadow)
+	if (Properties.CutShadow)
 	{
 		::PrintWindow(m_TargetWindow, m_OriginalMemDC, 2);
 		::BitBlt(m_MemDC, 0, 0, m_WindowSize.X, m_WindowSize.Y, m_OriginalMemDC, m_WindowOffset.X, m_WindowOffset.Y, SRCCOPY);
@@ -133,7 +133,7 @@ UTexture2D* ACaptureMachine::CreateTexture()
 
 	HDC foundDC = ::GetDC(m_TargetWindow);
 	m_MemDC = ::CreateCompatibleDC(foundDC);
-	if (CutShadow)
+	if (Properties.CutShadow)
 	{
 		m_OriginalMemDC = ::CreateCompatibleDC(foundDC);
 	}
@@ -157,27 +157,27 @@ bool ACaptureMachine::FindTargetWindow(HWND hWnd)
 
 	bool isMatch = false;
 
-	switch (TitleMatchingWindowSearch)
+	switch (Properties.TitleMatchingWindowSearch)
 	{
 	case ETitleMatchingWindowSearch::PerfectMatch:
-		isMatch = title.Equals(CaptureTargetTitle, ESearchCase::IgnoreCase);
+		isMatch = title.Equals(Properties.CaptureTargetTitle, ESearchCase::IgnoreCase);
 		break;
 
 	case ETitleMatchingWindowSearch::ForwardMatch:
-		isMatch = title.StartsWith(CaptureTargetTitle, ESearchCase::IgnoreCase);
+		isMatch = title.StartsWith(Properties.CaptureTargetTitle, ESearchCase::IgnoreCase);
 		break;
 
 	case ETitleMatchingWindowSearch::PartialMatch:
-		isMatch = title.Contains(CaptureTargetTitle, ESearchCase::IgnoreCase);
+		isMatch = title.Contains(Properties.CaptureTargetTitle, ESearchCase::IgnoreCase);
 		break;
 
 	case ETitleMatchingWindowSearch::BackwardMatch:
-		isMatch = title.EndsWith(CaptureTargetTitle, ESearchCase::IgnoreCase);
+		isMatch = title.EndsWith(Properties.CaptureTargetTitle, ESearchCase::IgnoreCase);
 		break;
 
 	case ETitleMatchingWindowSearch::RegularExpression:
 		{
-			const FRegexPattern pattern = FRegexPattern(CaptureTargetTitle);
+			const FRegexPattern pattern = FRegexPattern(Properties.CaptureTargetTitle);
 			FRegexMatcher matcher(pattern, title);
 
 			isMatch = matcher.FindNext();
@@ -218,7 +218,7 @@ void ACaptureMachine::GetWindowSize(HWND hWnd)
 	RECT rect;
 	::GetWindowRect(hWnd, &rect);
 
-	if (CutShadow)
+	if (Properties.CutShadow)
 	{
 		RECT dwmWindowRect;
 		::DwmGetWindowAttribute(hWnd, DWMWA_EXTENDED_FRAME_BOUNDS, &dwmWindowRect, sizeof(RECT));
@@ -269,7 +269,7 @@ void ACaptureMachine::ReCreateTexture()
 
 	::SelectObject(m_MemDC, m_hBmp);
 
-	if (CutShadow)
+	if (Properties.CutShadow)
 	{
 		m_hOriginalBmp = ::CreateCompatibleBitmap(m_MemDC, m_OriginalWindowSize.X, m_OriginalWindowSize.Y);
 		::SelectObject(m_OriginalMemDC, m_hOriginalBmp);

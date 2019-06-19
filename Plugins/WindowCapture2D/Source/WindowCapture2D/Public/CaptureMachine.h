@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "CaptureMachineProperties.h"
 #if PLATFORM_WINDOWS
 #include "Windows/WindowsHWrapper.h"
 #include <WinUser.h>
@@ -14,36 +15,6 @@ using HWND = void*;
 #endif
 #include "CaptureMachine.generated.h"
 
-struct FIntVector2D
-{	
-	int32 X;
-	int32 Y;
-	
-	FIntVector2D()
-		: X(0), Y(0)
-	{
-
-	}
-	FIntVector2D(int32 _X, int32 _Y)
-		: X(_X), Y(_Y)
-	{
-	}
-
-	bool operator != (const FIntVector2D& obj)
-	{
-		return X != obj.X || Y != obj.Y;
-	}
-};
-
-UENUM(BlueprintType)
-enum class ETitleMatchingWindowSearch : uint8
-{
-	PerfectMatch,
-	ForwardMatch,
-	PartialMatch,
-	BackwardMatch,
-	RegularExpression
-};
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FCaptureMachineChangeTexture, UTexture2D*, NewTexture);
 
@@ -72,19 +43,7 @@ public:
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)
-	FString CaptureTargetTitle;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)
-	ETitleMatchingWindowSearch TitleMatchingWindowSearch = ETitleMatchingWindowSearch::ForwardMatch;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)
-	int32 FrameRate = 60;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)
-	bool CheckWindowSize = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)
-	bool CutShadow = false;
+	FCaptureMachineProperties Properties;
 
 	UPROPERTY(BlueprintReadOnly, Category = SceneCapture)
 	class UTexture2D* TextureTarget;
