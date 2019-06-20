@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
 #include "CaptureMachineProperties.h"
 #if PLATFORM_WINDOWS
 #include "Windows/WindowsHWrapper.h"
@@ -15,31 +14,30 @@ using HWND = void*;
 #endif
 #include "CaptureMachine.generated.h"
 
-
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FCaptureMachineChangeTexture, UTexture2D*, NewTexture);
 
 
 UCLASS(BlueprintType, Blueprintable)
-class WINDOWCAPTURE2D_API ACaptureMachine : public AActor
+class WINDOWCAPTURE2D_API UCaptureMachine : public UObject
 {
 	GENERATED_BODY()
 	
 public:	
-	ACaptureMachine();
+	UCaptureMachine();
 
-protected:
-	virtual void BeginPlay() override;
+	virtual void Start();
+	virtual void Close();
+
 	UFUNCTION(BlueprintPure, Category = WindowCapture2D)
 	UTexture2D* CreateTexture();
 
+protected:
 	bool FindTargetWindow(HWND hWnd);
 	void UpdateTexture();
 	void GetWindowSize(HWND hWnd);
 	void ReCreateTexture();
 	bool DoCapture();
 
-public:	
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)

@@ -45,18 +45,18 @@ public:
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)
-	FString CaptureTargetTitle;
+	FString CaptureTargetTitle = TEXT("WindowCapture2D");
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)
 	ETitleMatchingWindowSearch TitleMatchingWindowSearch = ETitleMatchingWindowSearch::ForwardMatch;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)
-	int32 FrameRate = 60;
+	int32 FrameRate = 30;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)
 	bool CheckWindowSize = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)
-	bool CutShadow = false;
+	bool CutShadow = true;
 
 };

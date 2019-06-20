@@ -1,7 +1,6 @@
 ﻿// Copyright 2019 ayumax. All Rights Reserved.
 
 #include "CaptureMachine.h"
-#include "Engine/TextureRenderTarget2D.h"
 #include "Engine/Texture2D.h"
 #include "Async/Async.h"
 #include "Internationalization/Regex.h"
@@ -12,17 +11,22 @@
 #include <dwmapi.h>
 #endif
 
-ACaptureMachine::ACaptureMachine()
+UCaptureMachine::UCaptureMachine()
 {
-	PrimaryActorTick.bCanEverTick = false;
 }
 
-void ACaptureMachine::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void UCaptureMachine::Start()
 {
-	Super::EndPlay(EndPlayReason);
-
 #if PLATFORM_WINDOWS
-	
+	CaptureWorkerThread = new FWCWorkerThread([this] { return DoCapture(); }, 1.0f / (float)Properties.FrameRate);
+	CaptureThread = FRunnableThread::Create(CaptureWorkerThread, TEXT("UCaptureMachine CaptureThread"));
+#endif
+}
+
+void UCaptureMachine::Close()
+{
+#if PLATFORM_WINDOWS
+
 	if (TextureTarget)
 	{
 		TextureTarget->ReleaseResource();
@@ -34,9 +38,9 @@ void ACaptureMachine::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		CaptureThread->WaitForCompletion();
 
 		delete CaptureThread;
-		CaptureThread = nullptr;	
+		CaptureThread = nullptr;
 	}
-	
+
 	if (CaptureWorkerThread)
 	{
 		delete CaptureWorkerThread;
@@ -68,19 +72,11 @@ void ACaptureMachine::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	}
 
 #endif
+
 }
 
-void ACaptureMachine::BeginPlay()
-{
-	Super::BeginPlay();
 
-#if PLATFORM_WINDOWS
-	CaptureWorkerThread = new FWCWorkerThread([this] { return DoCapture(); }, 1.0f / (float)Properties.FrameRate);
-	CaptureThread = FRunnableThread::Create(CaptureWorkerThread, TEXT("ACaptureMachine CaptureThread"));
-#endif
-}
-
-bool ACaptureMachine::DoCapture()
+bool UCaptureMachine::DoCapture()
 {
 #if PLATFORM_WINDOWS
 	if (!m_TargetWindow) return true;
@@ -116,14 +112,14 @@ bool ACaptureMachine::DoCapture()
 	return true;
 }
 
-UTexture2D* ACaptureMachine::CreateTexture()
+UTexture2D* UCaptureMachine::CreateTexture()
 {
 #if PLATFORM_WINDOWS
 	m_TargetWindow = nullptr;
 
 	::EnumWindows([](HWND hwnd, LPARAM lParam) -> BOOL
 		{
-			ACaptureMachine* my = (ACaptureMachine*)lParam;
+			UCaptureMachine* my = (UCaptureMachine*)lParam;
 			return my->FindTargetWindow(hwnd);
 		}, (LPARAM)this);
 
@@ -147,8 +143,9 @@ UTexture2D* ACaptureMachine::CreateTexture()
 	return nullptr;
 }
 
-bool ACaptureMachine::FindTargetWindow(HWND hWnd)
+bool UCaptureMachine::FindTargetWindow(HWND hWnd)
 {
+#if PLATFORM_WINDOWS
 	__wchar_t windowTitle[1024];
 	GetWindowText(hWnd, windowTitle, 1024);
 	FString title(windowTitle);
@@ -190,11 +187,12 @@ bool ACaptureMachine::FindTargetWindow(HWND hWnd)
 		m_TargetWindow = hWnd;
 		return false;
 	}
+#endif
 
 	return true;
 }
 
-void ACaptureMachine::UpdateTexture()
+void UCaptureMachine::UpdateTexture()
 {
 #if PLATFORM_WINDOWS
 	if (!TextureTarget) return;
@@ -204,7 +202,7 @@ void ACaptureMachine::UpdateTexture()
 #endif
 }
 
-void ACaptureMachine::GetWindowSize(HWND hWnd)
+void UCaptureMachine::GetWindowSize(HWND hWnd)
 {
 #if PLATFORM_WINDOWS
 	if (!::IsWindow(hWnd))
@@ -236,7 +234,7 @@ void ACaptureMachine::GetWindowSize(HWND hWnd)
 #endif
 }
 
-void ACaptureMachine::ReCreateTexture()
+void UCaptureMachine::ReCreateTexture()
 {
 #if PLATFORM_WINDOWS
 	if (m_hBmp)
