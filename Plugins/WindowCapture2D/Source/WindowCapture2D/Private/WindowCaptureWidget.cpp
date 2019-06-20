@@ -9,19 +9,26 @@ UWindowCaptureWidget::UWindowCaptureWidget(const FObjectInitializer& ObjectIniti
 {
 }
 
-void UWindowCaptureWidget::BeginDestroy()
+void UWindowCaptureWidget::ReleaseSlateResources(bool bReleaseChildren)
 {
+	FlushRenderingCommands();
+
 	if (CaptureMachine)
 	{
 		CaptureMachine->Close();
 		CaptureMachine = nullptr;
 	}
 
-	Super::BeginDestroy();
+	Super::ReleaseSlateResources(bReleaseChildren);
 }
 
 UTexture2D* UWindowCaptureWidget::Start()
 {
+	if (CaptureMachine)
+	{
+		CaptureMachine->Close();
+	}
+
 	CaptureMachine = NewObject<UCaptureMachine>(this);
 
 	CaptureMachine->Properties = Properties;

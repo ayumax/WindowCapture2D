@@ -22,6 +22,11 @@ void AWindowCaptureActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 UTexture2D* AWindowCaptureActor::Start()
 {
+	if (CaptureMachine)
+	{
+		CaptureMachine->Close();
+	}
+
 	CaptureMachine = NewObject<UCaptureMachine>(this);
 
 	CaptureMachine->Properties = Properties;

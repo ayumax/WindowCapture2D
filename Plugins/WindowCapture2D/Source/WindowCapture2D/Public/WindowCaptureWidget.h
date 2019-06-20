@@ -28,7 +28,7 @@ protected:
 	void OnChangeTexture(UTexture2D* NewTexture);
 
 public:	
-	virtual void BeginDestroy() override; 
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)
