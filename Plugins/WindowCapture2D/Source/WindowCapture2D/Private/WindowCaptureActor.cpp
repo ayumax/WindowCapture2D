@@ -11,9 +11,13 @@ AWindowCaptureActor::AWindowCaptureActor()
 
 void AWindowCaptureActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (CaptureMachine)
+	{
+		CaptureMachine->Close();
+		CaptureMachine = nullptr;
+	}
+	 
 	Super::EndPlay(EndPlayReason);
-
-	CaptureMachine->Close();
 }
 
 UTexture2D* AWindowCaptureActor::Start()

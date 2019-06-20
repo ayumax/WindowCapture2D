@@ -38,7 +38,8 @@ public class WindowCapture2D : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-                "RenderCore"
+                "RenderCore",
+                "UMG"
             }
 			);
 		
