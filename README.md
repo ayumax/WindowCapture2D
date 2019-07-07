@@ -3,9 +3,15 @@ Library for capturing and displaying windows in real time with UnrealEngine.
 
 Captures in specified window units.
 
+You can also capture windows hidden behind other windows.
+
+Captured windows can be attached to meshes or UMG in 3D space.
 
 ![ed99cc1218473bb4accc3c5d217454c4](https://user-images.githubusercontent.com/8191970/59857826-b31e1400-93b4-11e9-80df-13e39a0e1ec6.gif)
 
+
+## UE4 Marketplace
+[https://www.unrealengine.com/marketplace/ja/slug/windowcapture2d](https://www.unrealengine.com/marketplace/ja/slug/windowcapture2d)
 
 
 # Quick Start
