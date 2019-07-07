@@ -9,16 +9,19 @@ Captures in specified window units.
 
 
 # Quick Start
+Please check "show engine content"
+
+![showenginecontent](https://user-images.githubusercontent.com/8191970/60768227-80d31d00-a0fd-11e9-8ad8-7fa00682732e.png)
 
 ## When Actor is placed
 1. Put "WindowCapturePlane" at the level
 
-![image](https://user-images.githubusercontent.com/8191970/59691952-e4fd7200-921e-11e9-8afe-8585339f8ae3.png)
+![setactor](https://user-images.githubusercontent.com/8191970/60768239-afe98e80-a0fd-11e9-989f-445cf6779517.png)
 
 ## When Widget is placed
 1. Place "WindowCaptureUMG" in UMG
 
-![umg](https://user-images.githubusercontent.com/8191970/59858054-33447980-93b5-11e9-96bc-ae790e5f721e.png)
+![umg](https://user-images.githubusercontent.com/8191970/60768308-ffc85580-a0fd-11e9-8e2f-7d99cc2893c5.png)
 
 1. Set various properties
 
