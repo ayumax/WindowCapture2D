@@ -15,9 +15,9 @@ Captured windows can be attached to meshes or UMG in 3D space.
 
 
 # Quick Start
-Please check "show engine content"
+Please check "show engine content" and "show plugin content"
 
-![showenginecontent](https://user-images.githubusercontent.com/8191970/60768227-80d31d00-a0fd-11e9-8ad8-7fa00682732e.png)
+![showcontent](https://user-images.githubusercontent.com/8191970/60973786-dc9edf80-a363-11e9-8eb4-c01deb0135c5.png)
 
 ## When Actor is placed
 1. Put "WindowCapturePlane" at the level
