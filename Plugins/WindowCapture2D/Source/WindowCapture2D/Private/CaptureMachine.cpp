@@ -27,11 +27,6 @@ void UCaptureMachine::Close()
 {
 #if PLATFORM_WINDOWS
 
-	if (TextureTarget)
-	{
-		TextureTarget->ReleaseResource();
-	}
-
 	if (CaptureThread)
 	{
 		CaptureThread->Kill(true);
@@ -39,6 +34,12 @@ void UCaptureMachine::Close()
 
 		delete CaptureThread;
 		CaptureThread = nullptr;
+	}
+
+	if (TextureTarget)
+	{
+		TextureTarget->ReleaseResource();
+		TextureTarget = nullptr;
 	}
 
 	if (CaptureWorkerThread)
