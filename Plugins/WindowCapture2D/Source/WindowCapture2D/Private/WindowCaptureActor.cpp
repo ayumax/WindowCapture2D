@@ -13,18 +13,29 @@ void AWindowCaptureActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (CaptureMachine)
 	{
-		CaptureMachine->Close();
-		CaptureMachine = nullptr;
+		CaptureMachine->Stop();
 	}
 	 
 	Super::EndPlay(EndPlayReason);
+}
+
+void AWindowCaptureActor::BeginDestroy()
+{
+	Super::BeginDestroy();
+
+	if (CaptureMachine)
+	{
+		CaptureMachine->Dispose();
+		CaptureMachine = nullptr;
+	}
 }
 
 UTexture2D* AWindowCaptureActor::Start()
 {
 	if (CaptureMachine)
 	{
-		CaptureMachine->Close();
+		CaptureMachine->Stop();
+		CaptureMachine->Dispose();
 	}
 
 	CaptureMachine = NewObject<UCaptureMachine>(this);

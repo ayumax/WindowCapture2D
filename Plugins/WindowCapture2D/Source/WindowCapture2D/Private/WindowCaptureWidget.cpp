@@ -15,18 +15,31 @@ void UWindowCaptureWidget::ReleaseSlateResources(bool bReleaseChildren)
 
 	if (CaptureMachine)
 	{
-		CaptureMachine->Close();
-		CaptureMachine = nullptr;
+		CaptureMachine->Stop();
 	}
 
 	Super::ReleaseSlateResources(bReleaseChildren);
 }
 
+
+void UWindowCaptureWidget::BeginDestroy()
+{
+	Super::BeginDestroy();
+
+	if (CaptureMachine)
+	{
+		CaptureMachine->Dispose();
+		CaptureMachine = nullptr;
+	}
+}
+
+
 UTexture2D* UWindowCaptureWidget::Start()
 {
 	if (CaptureMachine)
 	{
-		CaptureMachine->Close();
+		CaptureMachine->Stop();
+		CaptureMachine->Dispose();
 	}
 
 	CaptureMachine = NewObject<UCaptureMachine>(this);
