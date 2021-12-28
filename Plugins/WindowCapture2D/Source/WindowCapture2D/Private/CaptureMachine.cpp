@@ -23,7 +23,7 @@ void UCaptureMachine::Start()
 #endif
 }
 
-void UCaptureMachine::Close()
+void UCaptureMachine::Stop()
 {
 #if PLATFORM_WINDOWS
 
@@ -47,7 +47,14 @@ void UCaptureMachine::Close()
 		delete CaptureWorkerThread;
 		CaptureWorkerThread = nullptr;
 	}
+#endif
 
+}
+
+
+void UCaptureMachine::Dispose()
+{
+#if PLATFORM_WINDOWS
 	if (m_hBmp)
 	{
 		::DeleteObject(m_hBmp);
@@ -85,7 +92,7 @@ bool UCaptureMachine::DoCapture()
 
 	if (Properties.CheckWindowSize)
 	{
-		FIntVector2D oldWindowSize = m_WindowSize;
+		const FIntVector2D oldWindowSize = m_WindowSize;
 		GetWindowSize(m_TargetWindow);
 		if (m_WindowSize != oldWindowSize)
 		{
@@ -193,13 +200,13 @@ bool UCaptureMachine::FindTargetWindow(HWND hWnd)
 	return true;
 }
 
-void UCaptureMachine::UpdateTexture()
+void UCaptureMachine::UpdateTexture() const
 {
 #if PLATFORM_WINDOWS
 	if (!TextureTarget) return;
 
-	auto Region = new FUpdateTextureRegion2D(0, 0, 0, 0, TextureTarget->GetSizeX(), TextureTarget->GetSizeY());
-	TextureTarget->UpdateTextureRegions(0, 1, Region, 4 * TextureTarget->GetSizeX(), 4, (uint8*)m_BitmapBuffer);
+	const auto Region = new FUpdateTextureRegion2D(0, 0, 0, 0, TextureTarget->GetSizeX(), TextureTarget->GetSizeY());
+	TextureTarget->UpdateTextureRegions(0, 1, Region, 4 * TextureTarget->GetSizeX(), 4, reinterpret_cast<uint8*>(m_BitmapBuffer));
 #endif
 }
 

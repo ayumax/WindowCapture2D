@@ -29,8 +29,8 @@ protected:
 
 public:	
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void BeginDestroy() override;
 
-public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)
 	FCaptureMachineProperties Properties;
 

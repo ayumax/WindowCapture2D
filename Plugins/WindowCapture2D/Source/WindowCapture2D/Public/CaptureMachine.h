@@ -26,14 +26,15 @@ public:
 	UCaptureMachine();
 
 	virtual void Start();
-	virtual void Close();
+	virtual void Stop();
+	virtual void Dispose();
 
 	UFUNCTION(BlueprintPure, Category = WindowCapture2D)
 	UTexture2D* CreateTexture();
 
 protected:
 	bool FindTargetWindow(HWND hWnd);
-	void UpdateTexture();
+	void UpdateTexture() const;
 	void GetWindowSize(HWND hWnd);
 	void ReCreateTexture();
 	bool DoCapture();
