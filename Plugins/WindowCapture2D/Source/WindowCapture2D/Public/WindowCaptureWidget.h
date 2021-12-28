@@ -29,8 +29,8 @@ protected:
 
 public:	
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
-
-public:
+	virtual void BeginDestroy() override;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)
 	FCaptureMachineProperties Properties;
 
