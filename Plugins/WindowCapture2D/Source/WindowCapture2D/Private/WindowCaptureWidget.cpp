@@ -2,7 +2,7 @@
 
 #include "WindowCaptureWidget.h"
 #include "Engine/Texture2D.h"
-
+#include "RenderingThread.h"
 
 UWindowCaptureWidget::UWindowCaptureWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
