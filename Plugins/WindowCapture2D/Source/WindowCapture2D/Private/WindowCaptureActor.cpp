@@ -1,4 +1,4 @@
-﻿// Copyright 2019 ayumax. All Rights Reserved.
+// Copyright 2019 ayumax. All Rights Reserved.
 
 #include "WindowCaptureActor.h"
 #include "Engine/Texture2D.h"
@@ -13,16 +13,15 @@ void AWindowCaptureActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (CaptureMachine)
 	{
-		CaptureMachine->Stop();
+		CaptureMachine->Dispose();
+		CaptureMachine = nullptr;
 	}
-	 
 	Super::EndPlay(EndPlayReason);
 }
 
 void AWindowCaptureActor::BeginDestroy()
 {
 	Super::BeginDestroy();
-
 	if (CaptureMachine)
 	{
 		CaptureMachine->Dispose();
@@ -34,7 +33,6 @@ UTexture2D* AWindowCaptureActor::Start()
 {
 	if (CaptureMachine)
 	{
-		CaptureMachine->Stop();
 		CaptureMachine->Dispose();
 	}
 

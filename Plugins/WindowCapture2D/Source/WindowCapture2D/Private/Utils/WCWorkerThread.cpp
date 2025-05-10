@@ -1,48 +1,45 @@
 // Copyright 2019 ayumax. All Rights Reserved.
 #include "WCWorkerThread.h"
 #include "Runtime/Core/Public/HAL/PlatformProcess.h"
+#include "HAL/Event.h"
 
-FWCWorkerThread::FWCWorkerThread(TFunction<bool()> InWork, float WaitSeconds)
-	: Work(InWork)
-	, End([]() {})
-	, Seconds(WaitSeconds)
-	, ContinueRun(true)
+FWCWorkerThread::FWCWorkerThread(const TFunction<bool()>& InWork)
+	: ContinueRun(true)
+	, Work(InWork)
+	, _waitEvent(nullptr)
 {
-
-}
-
-FWCWorkerThread::FWCWorkerThread(TFunction<bool()> InWork, TFunction<void()> InEnd, float WaitSeconds)
-	: Work(InWork)
-	, End(InEnd)
-	, Seconds(WaitSeconds)
-	, ContinueRun(true)
-{
-
+	_waitEvent = FPlatformProcess::GetSynchEventFromPool(false);
 }
 
 FWCWorkerThread::~FWCWorkerThread()
 {
-
+	if (_waitEvent)
+	{
+		FPlatformProcess::ReturnSynchEventToPool(_waitEvent);
+		_waitEvent = nullptr;
+	}
 }
 
 uint32 FWCWorkerThread::Run()
 {
 	while (ContinueRun)
 	{
-		FDateTime startTime = FDateTime::Now();
-
+		if (_waitEvent)
+		{
+			_waitEvent->Wait(100);
+		}
+		
+		if (!ContinueRun)
+		{
+			break;
+		}
+		
 		if (!Work())
 		{
 			return 0;
 		}
-
-		if(ContinueRun)
-		{
-			float waitTime = FMath::Max(0.001f, Seconds - (float)(FDateTime::Now() - startTime).GetTotalSeconds());
-			FPlatformProcess::Sleep(waitTime);
-		}
 	}
-
+	
 	return 0;
 }
 
@@ -50,11 +47,34 @@ void FWCWorkerThread::Stop()
 {
 	ContinueRun = false;
 
+	if (_waitEvent)
+	{
+		_waitEvent->Trigger();
+		FPlatformProcess::ReturnSynchEventToPool(_waitEvent);
+		_waitEvent = nullptr;
+	}
+
+	FRunnable::Stop();
 }
 
 void FWCWorkerThread::Exit()
 {
 	ContinueRun = false;
 
-	End();
+	if (_waitEvent)
+	{
+		_waitEvent->Trigger();
+		FPlatformProcess::ReturnSynchEventToPool(_waitEvent);
+		_waitEvent = nullptr;
+	}
+
+	FRunnable::Exit();
+}
+
+void FWCWorkerThread::WakeUp()
+{
+	if (_waitEvent)
+	{
+		_waitEvent->Trigger();
+	}
 }

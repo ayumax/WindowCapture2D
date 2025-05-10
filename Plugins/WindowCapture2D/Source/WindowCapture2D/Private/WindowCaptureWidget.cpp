@@ -15,7 +15,8 @@ void UWindowCaptureWidget::ReleaseSlateResources(bool bReleaseChildren)
 
 	if (CaptureMachine)
 	{
-		CaptureMachine->Stop();
+		CaptureMachine->Dispose();
+		CaptureMachine = nullptr;
 	}
 
 	Super::ReleaseSlateResources(bReleaseChildren);
@@ -38,7 +39,6 @@ UTexture2D* UWindowCaptureWidget::Start()
 {
 	if (CaptureMachine)
 	{
-		CaptureMachine->Stop();
 		CaptureMachine->Dispose();
 	}
 
