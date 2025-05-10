@@ -1,15 +1,12 @@
-﻿// Copyright 2019 ayumax. All Rights Reserved.
-
+// Copyright 2019 ayumax. All Rights Reserved.
+#ifdef PLATFORM_WINDOWS
 #include "CaptureMachine.h"
 #include "Engine/Texture2D.h"
 #include "Async/Async.h"
 #include "Internationalization/Regex.h"
-#include "Runtime/Core/Public/HAL/RunnableThread.h"
-#include "../Private/Utils/WCWorkerThread.h"
+#include "WindowCaptureSession.h"
 
-#if PLATFORM_WINDOWS
-#include <dwmapi.h>
-#endif
+#define WC_LOG(Format, ...) UE_LOG(LogTemp, Warning, TEXT("[WC][%p] %s: " Format), this, TEXT(__FUNCTION__), ##__VA_ARGS__)
 
 UCaptureMachine::UCaptureMachine()
 {
@@ -17,112 +14,126 @@ UCaptureMachine::UCaptureMachine()
 
 void UCaptureMachine::Start()
 {
-#if PLATFORM_WINDOWS
-	CaptureWorkerThread = new FWCWorkerThread([this] { return DoCapture(); }, 1.0f / (float)Properties.FrameRate);
-	CaptureThread = FRunnableThread::Create(CaptureWorkerThread, TEXT("UCaptureMachine CaptureThread"));
-#endif
+	m_Session = new WindowCaptureSession();
+
+	CreateTexture();
+
+	_TickHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &UCaptureMachine::TickCapture), 1.0f / (float)Properties.FrameRate);
 }
-
-void UCaptureMachine::Stop()
-{
-#if PLATFORM_WINDOWS
-
-	if (CaptureThread)
-	{
-		CaptureThread->Kill(true);
-		CaptureThread->WaitForCompletion();
-
-		delete CaptureThread;
-		CaptureThread = nullptr;
-	}
-
-	if (TextureTarget)
-	{
-		TextureTarget->ReleaseResource();
-		TextureTarget = nullptr;
-	}
-
-	if (CaptureWorkerThread)
-	{
-		delete CaptureWorkerThread;
-		CaptureWorkerThread = nullptr;
-	}
-#endif
-
-}
-
 
 void UCaptureMachine::Dispose()
 {
-#if PLATFORM_WINDOWS
-	if (m_hBmp)
+	if (_IsDisposed)
 	{
-		::DeleteObject(m_hBmp);
-		m_BitmapBuffer = nullptr;
+		return;
+	}
+	
+	WC_LOG("[this=%p] Dispose called (_IsDisposed=%d)", this, _IsDisposed ? 1 : 0);
+	
+	if (_TickHandle.IsValid())
+	{
+		WC_LOG("[this=%p] RemoveTicker: before", this);
+		FTSTicker::GetCoreTicker().RemoveTicker(_TickHandle);
+		_TickHandle.Reset();
+		WC_LOG("[this=%p] RemoveTicker: after", this);
 	}
 
-	if (m_MemDC)
+	if (m_Session)
 	{
-		::DeleteDC(m_MemDC);
-		m_MemDC = nullptr;
+		m_Session->Stop();
+		WC_LOG("[this=%p] Session Stop1", this);
+		delete m_Session;
+		WC_LOG("[this=%p] Session Stop2", this);
+		m_Session = nullptr;
+		WC_LOG("[this=%p] Stop: after", this);
+	}
+	
+	if (TextureTarget)
+	{
+		WC_LOG("[this=%p] ReleaseResource TextureTarget: before", this);
+		TextureTarget->ReleaseResource();
+		TextureTarget = nullptr;
+		WC_LOG("[this=%p] ReleaseResource TextureTarget: after", this);
 	}
 
-	if (m_hOriginalBmp)
-	{
-		::DeleteObject(m_hOriginalBmp);
-		m_hOriginalBmp = nullptr;
-	}
-
-	if (m_OriginalMemDC)
-	{
-		::DeleteDC(m_OriginalMemDC);
-		m_OriginalMemDC = nullptr;
-	}
-
-#endif
-
+	_IsDisposed = true;
 }
 
-
-bool UCaptureMachine::DoCapture()
+bool UCaptureMachine::TickCapture(float deltaTime)
 {
-#if PLATFORM_WINDOWS
-	if (!m_TargetWindow) return true;
-	if (!TextureTarget) return true;
-
-	if (Properties.CheckWindowSize)
+	if (_IsDisposed)
 	{
-		const FIntVector2D oldWindowSize = m_WindowSize;
-		GetWindowSize(m_TargetWindow);
-		if (m_WindowSize != oldWindowSize)
+		return false;
+	}
+
+	if (!m_Session->HasNewFrame()) {
+		return true;
+	}
+
+	WCFrameDesc FrameDesc;
+	{
+		int32 Height = 0;
+		int32 Width = 0;
+		
+		if (!m_Session->GetFrameInfo(&FrameDesc))
 		{
+			return true;
+		}
+
+		Width = FrameDesc.width;
+		Height = FrameDesc.height;
+
+		if (Width != m_WindowSize.X || Height != m_WindowSize.Y)
+		{
+			m_WindowSize = FIntVector2D(Width, Height);
+
 			ReCreateTexture();
 			ChangeTexture.Broadcast(TextureTarget);
 		}
+		
+		if (!m_Session->HasNewFrame()) return true;
+			
+		if (TextureTarget && m_Session->m_buffer.Num() == Width * Height * 4)
+		{
+			if (FTextureResource* TextureResource = TextureTarget->GetResource())
+			{
+				if (FRHITexture* RHITexture = TextureResource->GetTextureRHI())
+				{
+					ENQUEUE_RENDER_COMMAND(UpdateTextureRegion)(
+						[RHITexture, Width, Height, this](FRHICommandListImmediate& RHICmdList)
+						{
+							if (!RHITexture || _IsDisposed) {
+								return;
+							}
 
-		if (!TextureTarget) return true;
+							m_Session->UseBuffer([this, Width, Height, &RHITexture, &RHICmdList]()
+							{
+								if (m_Session->m_buffer.Num() != Width * Height * 4)
+								{
+									return;
+								}
+								
+								FUpdateTextureRegion2D Region(0, 0, 0, 0, Width, Height);
+								RHICmdList.UpdateTexture2D(
+									RHITexture,
+									0,
+									Region,
+									Width * 4,
+									m_Session->m_buffer.GetData()
+								);
+							});
+						});
+				}
+			}
+		}		
 	}
-
-
-	if (Properties.CutShadow)
-	{
-		::PrintWindow(m_TargetWindow, m_OriginalMemDC, 2);
-		::BitBlt(m_MemDC, 0, 0, m_WindowSize.X, m_WindowSize.Y, m_OriginalMemDC, m_WindowOffset.X, m_WindowOffset.Y, SRCCOPY);
-	}
-	else
-	{
-		::PrintWindow(m_TargetWindow, m_MemDC, 2);
-	}
-
-	UpdateTexture();
-#endif
 
 	return true;
 }
 
+
 UTexture2D* UCaptureMachine::CreateTexture()
 {
-#if PLATFORM_WINDOWS
 	m_TargetWindow = nullptr;
 
 	::EnumWindows([](HWND hwnd, LPARAM lParam) -> BOOL
@@ -133,27 +144,17 @@ UTexture2D* UCaptureMachine::CreateTexture()
 
 	if (!m_TargetWindow) return nullptr;
 
+	m_Session->Start(m_TargetWindow);
+
 	GetWindowSize(m_TargetWindow);
-
-	HDC foundDC = ::GetDC(m_TargetWindow);
-	m_MemDC = ::CreateCompatibleDC(foundDC);
-	if (Properties.CutShadow)
-	{
-		m_OriginalMemDC = ::CreateCompatibleDC(foundDC);
-	}
-
-	ReleaseDC(m_TargetWindow, foundDC);
-
+	
 	ReCreateTexture();
-
-	return TextureTarget;
-#endif
-	return nullptr;
+	
+	return TextureTarget;	
 }
 
 bool UCaptureMachine::FindTargetWindow(HWND hWnd)
 {
-#if PLATFORM_WINDOWS
 	__wchar_t windowTitle[1024];
 	GetWindowText(hWnd, windowTitle, 1024);
 	FString title(windowTitle);
@@ -195,90 +196,38 @@ bool UCaptureMachine::FindTargetWindow(HWND hWnd)
 		m_TargetWindow = hWnd;
 		return false;
 	}
-#endif
 
 	return true;
 }
 
-void UCaptureMachine::UpdateTexture() const
-{
-#if PLATFORM_WINDOWS
-	if (!TextureTarget) return;
-
-	const auto Region = new FUpdateTextureRegion2D(0, 0, 0, 0, TextureTarget->GetSizeX(), TextureTarget->GetSizeY());
-	TextureTarget->UpdateTextureRegions(0, 1, Region, 4 * TextureTarget->GetSizeX(), 4, reinterpret_cast<uint8*>(m_BitmapBuffer));
-#endif
-}
-
 void UCaptureMachine::GetWindowSize(HWND hWnd)
 {
-#if PLATFORM_WINDOWS
 	if (!::IsWindow(hWnd))
 	{
-		m_OriginalWindowSize = FIntVector2D(0, 0);
-		m_WindowSize = m_OriginalWindowSize;
-		m_WindowOffset = FIntVector2D(0, 0);
+		m_WindowSize = FIntVector2D(0, 0);
 		return;
 	}
 
-	RECT rect;
-	::GetWindowRect(hWnd, &rect);
-
-	if (Properties.CutShadow)
+	WCFrameDesc FrameDesc;
+	if (!m_Session->GetFrameInfo(&FrameDesc))
 	{
-		RECT dwmWindowRect;
-		::DwmGetWindowAttribute(hWnd, DWMWA_EXTENDED_FRAME_BOUNDS, &dwmWindowRect, sizeof(RECT));
-
-		m_OriginalWindowSize = FIntVector2D(rect.right - rect.left, rect.bottom - rect.top);
-		m_WindowSize = FIntVector2D(dwmWindowRect.right - dwmWindowRect.left, dwmWindowRect.bottom - dwmWindowRect.top);
-		m_WindowOffset = FIntVector2D(dwmWindowRect.left - rect.left, dwmWindowRect.top - rect.top);
+		WC_LOG("[this=%p] GetFrameInfo failed", this);
+		return;
 	}
-	else
-	{
-		m_OriginalWindowSize = FIntVector2D(rect.right - rect.left, rect.bottom - rect.top);
-		m_WindowSize = m_OriginalWindowSize;
-		m_WindowOffset = FIntVector2D(0, 0);
-	}
-#endif
+	
+	m_WindowSize = FIntVector2D(FrameDesc.width, FrameDesc.height);
 }
 
 void UCaptureMachine::ReCreateTexture()
 {
-#if PLATFORM_WINDOWS
-	if (m_hBmp)
-	{
-		::DeleteObject(m_hBmp);
-		m_BitmapBuffer = nullptr;
-	}
-
 	if (m_WindowSize.X == 0 || m_WindowSize.Y == 0)
 	{
 		TextureTarget = nullptr;
 		return;
 	}
 
-	m_BitmapBuffer = new char[m_WindowSize.X * m_WindowSize.Y * 4];
-
-
 	TextureTarget = UTexture2D::CreateTransient(m_WindowSize.X, m_WindowSize.Y, PF_B8G8R8A8);
 	TextureTarget->UpdateResource();
-
-	BITMAPINFO bmpInfo;
-	bmpInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-	bmpInfo.bmiHeader.biWidth = m_WindowSize.X;
-	bmpInfo.bmiHeader.biHeight = m_WindowSize.Y;
-	bmpInfo.bmiHeader.biPlanes = 1;
-	bmpInfo.bmiHeader.biBitCount = 32;
-	bmpInfo.bmiHeader.biCompression = BI_RGB;
-
-	m_hBmp = ::CreateDIBSection(NULL, &bmpInfo, DIB_RGB_COLORS, (void**)&m_BitmapBuffer, NULL, 0);
-
-	::SelectObject(m_MemDC, m_hBmp);
-
-	if (Properties.CutShadow)
-	{
-		m_hOriginalBmp = ::CreateCompatibleBitmap(m_MemDC, m_OriginalWindowSize.X, m_OriginalWindowSize.Y);
-		::SelectObject(m_OriginalMemDC, m_hOriginalBmp);
-	}
-#endif
 }
+
+#endif

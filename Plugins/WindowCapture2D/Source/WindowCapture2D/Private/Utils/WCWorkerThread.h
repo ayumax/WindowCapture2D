@@ -4,22 +4,23 @@
 #include "CoreMinimal.h"
 #include "Runtime/Core/Public/HAL/Runnable.h"
 #include "Runtime/Core/Public/HAL/RunnableThread.h"
-
+#include "HAL/Event.h"
 
 class WINDOWCAPTURE2D_API FWCWorkerThread : public FRunnable
 {
 public:
-	FWCWorkerThread(TFunction<bool()> InWork, float WaitSeconds = 0.001f);
-	FWCWorkerThread(TFunction<bool()> InWork, TFunction<void()> InEnd, float WaitSeconds = 0.001f);
+	FWCWorkerThread(const TFunction<bool()>& InWork);
 	~FWCWorkerThread();
 
-	virtual uint32 Run() override;
-	virtual void Stop() override;
+	virtual uint32 Run() override final;
+	virtual void Stop() override final;
 	virtual void Exit() override;
+	void WakeUp();
+
+	FThreadSafeBool ContinueRun{true};
 
 private:
 	TFunction<bool()> Work;
-	TFunction<void()> End;
-	float Seconds;
-	volatile bool ContinueRun;
+	
+	FEvent* _waitEvent;
 };

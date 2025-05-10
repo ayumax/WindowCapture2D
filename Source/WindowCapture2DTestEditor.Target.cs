@@ -8,7 +8,10 @@ public class WindowCapture2DTestEditorTarget : TargetRules
 	public WindowCapture2DTestEditorTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Editor;
+		DefaultBuildSettings = BuildSettingsVersion.Latest;
+		IncludeOrderVersion = EngineIncludeOrderVersion.Latest;
+		CppStandard = CppStandardVersion.Cpp20;
 
-		ExtraModuleNames.AddRange( new string[] { "WindowCapture2DTest" } );
+		ExtraModuleNames.Add("WindowCapture2DTest");
 	}
 }

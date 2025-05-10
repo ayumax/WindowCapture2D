@@ -1,54 +1,38 @@
 // Copyright 1998-2019 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
+using System.IO;
 
 public class WindowCapture2D : ModuleRules
 {
 	public WindowCapture2D(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+		CppStandard = CppStandardVersion.Latest;
 		
-		PublicIncludePaths.AddRange(
-			new string[] {
-				// ... add public include paths required here ...
-			}
-			);
-				
-		
-		PrivateIncludePaths.AddRange(
-			new string[] {
-				// ... add other private include paths required here ...
-			}
-			);
+		PublicDependencyModuleNames.AddRange(["Core"]);
+
+		PrivateDependencyModuleNames.AddRange([
+			"CoreUObject",
+			"Engine",
+			"Slate",
+			"SlateCore",
+			"RenderCore",
+			"UMG",
+			"RHI"
+		]);
+
+		if (Target.Platform != UnrealTargetPlatform.Win64)
+		{
+			return;
+		}
 			
+		PublicSystemLibraries.AddRange(["shlwapi.lib", "runtimeobject.lib", "D3D11.lib"]);
 		
-		PublicDependencyModuleNames.AddRange(
-			new string[]
-			{
-				"Core",
-				// ... add other public dependencies that you statically link with here ...
-			}
-			);
-			
-		
-		PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
-				"CoreUObject",
-				"Engine",
-				"Slate",
-				"SlateCore",
-                "RenderCore",
-                "UMG"
-            }
-			);
-		
-		
-		DynamicallyLoadedModuleNames.AddRange(
-			new string[]
-			{
-				// ... add any modules that your module loads dynamically here ...
-			}
-			);
+		PrivateIncludePaths.Add(Path.Combine(
+			Target.WindowsPlatform.WindowsSdkDir!,
+			"Include",
+			Target.WindowsPlatform.WindowsSdkVersion!,
+			"cppwinrt"));
 	}
 }

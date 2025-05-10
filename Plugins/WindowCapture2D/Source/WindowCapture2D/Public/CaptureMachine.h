@@ -8,11 +8,14 @@
 #include "Windows/WindowsHWrapper.h"
 #include <WinUser.h>
 #else
-using HBITMAP = void*;
-using HDC = void*;
 using HWND = void*;
 #endif
+#include "HAL/CriticalSection.h"
+#include "Containers/Array.h"
+#include "HAL/PlatformAtomics.h"
 #include "CaptureMachine.generated.h"
+
+class WindowCaptureSession;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FCaptureMachineChangeTexture, UTexture2D*, NewTexture);
 
@@ -26,19 +29,19 @@ public:
 	UCaptureMachine();
 
 	virtual void Start();
-	virtual void Stop();
+
 	virtual void Dispose();
+
+	bool TickCapture(float deltaTime);
 
 	UFUNCTION(BlueprintPure, Category = WindowCapture2D)
 	UTexture2D* CreateTexture();
 
 protected:
 	bool FindTargetWindow(HWND hWnd);
-	void UpdateTexture() const;
 	void GetWindowSize(HWND hWnd);
 	void ReCreateTexture();
-	bool DoCapture();
-
+	
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)
@@ -51,18 +54,14 @@ public:
 	FCaptureMachineChangeTexture ChangeTexture;
 
 private:
-	char* m_BitmapBuffer = nullptr;
-
-	HBITMAP m_hBmp = nullptr;
-	HDC m_MemDC = nullptr;
-	HBITMAP m_hOriginalBmp = nullptr;
-	HDC m_OriginalMemDC = nullptr;
 	HWND m_TargetWindow = nullptr;
 
-	FIntVector2D m_WindowSize;
-	FIntVector2D m_OriginalWindowSize;
-	FIntVector2D m_WindowOffset;
+	FIntVector2D m_WindowSize;	
 
-	class FWCWorkerThread* CaptureWorkerThread = nullptr;
-	class FRunnableThread* CaptureThread = nullptr;
+	WindowCaptureSession* m_Session = nullptr;
+	
+	FTSTicker::FDelegateHandle _TickerHandle;
+	TAtomic<uint8> _IsDisposed = 0;
+
+	FTSTicker::FDelegateHandle _TickHandle;
 };
