@@ -216,12 +216,12 @@ int WindowCaptureSession::Start(HWND hWnd)
 {
 	m_hwnd = hWnd;
 
-	if (!m_hwnd)
+	if (!::IsWindow(hWnd))
 	{
-		throw std::runtime_error("Window not found");
+		return -1;
 	}
 
-	if (m_state == CaptureState::Running) return 0;
+	if (m_state == CaptureState::Running) return 1;
 
 	m_state = CaptureState::Running;
 
@@ -231,7 +231,7 @@ int WindowCaptureSession::Start(HWND hWnd)
 	_workerThread = new FWCWorkerThread([this]() { return CaptureWork(); });
 	_workerThreadHandle = FRunnableThread::Create(_workerThread, TEXT("WindowCaptureSessionWorker"));
 
-	return 1;
+	return 0;
 }
 
 void WindowCaptureSession::Stop()

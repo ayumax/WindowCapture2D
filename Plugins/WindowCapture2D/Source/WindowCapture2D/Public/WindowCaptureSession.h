@@ -28,7 +28,7 @@ typedef struct WCFrameDesc {
 } WCFrameDesc;
 
 
-class WindowCaptureSession
+class WINDOWCAPTURE2D_API WindowCaptureSession
 {
 public:
 	WindowCaptureSession();

@@ -37,8 +37,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = WindowCapture2D)
 	UTexture2D* CreateTexture();
 
-protected:
 	bool FindTargetWindow(HWND hWnd);
+	
+protected:
 	void GetWindowSize(HWND hWnd);
 	void ReCreateTexture();
 	
