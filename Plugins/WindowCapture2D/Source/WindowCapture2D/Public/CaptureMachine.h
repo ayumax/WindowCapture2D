@@ -28,19 +28,18 @@ class WINDOWCAPTURE2D_API UCaptureMachine : public UObject
 public:	
 	UCaptureMachine();
 
-	virtual void Start();
+	UFUNCTION(BlueprintCallable, Category = WindowCapture2D)
+	virtual UTexture2D* Start();
 
+	UFUNCTION(BlueprintCallable, Category = WindowCapture2D)
 	virtual void Dispose();
 
 	bool TickCapture(float deltaTime);
 
-	UFUNCTION(BlueprintPure, Category = WindowCapture2D)
-	UTexture2D* CreateTexture();
-
 	bool FindTargetWindow(HWND hWnd);
 	
 protected:
-	void GetWindowSize(HWND hWnd);
+	void GetWindowSize();
 	void ReCreateTexture();
 	
 

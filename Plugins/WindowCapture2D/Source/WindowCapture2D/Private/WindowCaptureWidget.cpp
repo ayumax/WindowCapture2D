@@ -47,9 +47,7 @@ UTexture2D* UWindowCaptureWidget::Start()
 	CaptureMachine->Properties = Properties;
 
 	CaptureMachine->ChangeTexture.AddDynamic(this, &UWindowCaptureWidget::OnChangeTexture);
-	CaptureMachine->Start();
-
-	return CaptureMachine->CreateTexture();
+	return CaptureMachine->Start();
 }
 
 void UWindowCaptureWidget::OnChangeTexture(UTexture2D* _NewTexture)
