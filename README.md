@@ -25,6 +25,8 @@ For UE4 support, please use the UE4.x branch.
 - [Unreal Engine Marketplace](https://www.fab.com/ja/listings/96541798-870b-40a5-b5ec-b3981e88272f)
 - GitHub: https://github.com/ayumax/WindowCapture2D
 
+The WindowCapture2D plugin for UE5.x has not yet been released on the Marketplace. It is currently in preparation for release.
+
 ## Installation Guide
 
 ### From Marketplace
