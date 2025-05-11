@@ -10,24 +10,25 @@ public class WindowCapture2D : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		CppStandard = CppStandardVersion.Latest;
 		
-		PublicDependencyModuleNames.AddRange(["Core"]);
+		PublicDependencyModuleNames.AddRange(new string[] { "Core" });
 
-		PrivateDependencyModuleNames.AddRange([
-			"CoreUObject",
-			"Engine",
-			"Slate",
-			"SlateCore",
-			"RenderCore",
-			"UMG",
-			"RHI"
-		]);
+		PrivateDependencyModuleNames.AddRange(new string[]
+			{
+				"CoreUObject",
+				"Engine",
+				"Slate",
+				"SlateCore",
+				"RenderCore",
+				"UMG",
+				"RHI"
+			});
 
 		if (Target.Platform != UnrealTargetPlatform.Win64)
 		{
 			return;
 		}
 			
-		PublicSystemLibraries.AddRange(["shlwapi.lib", "runtimeobject.lib", "D3D11.lib"]);
+		PublicSystemLibraries.AddRange(new string[] { "shlwapi.lib", "runtimeobject.lib", "D3D11.lib" });
 		
 		PrivateIncludePaths.Add(Path.Combine(
 			Target.WindowsPlatform.WindowsSdkDir!,

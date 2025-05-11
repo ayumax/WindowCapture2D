@@ -41,7 +41,7 @@ public class WindowCapture2DTests : ModuleRules
 			PrivateDependencyModuleNames.Add("EditorStyle");
 		}
 
-		PublicSystemLibraries.AddRange(["shlwapi.lib", "runtimeobject.lib", "D3D11.lib"]);
+		PublicSystemLibraries.AddRange(new string[] { "shlwapi.lib", "runtimeobject.lib", "D3D11.lib" });
 
 		PrivateIncludePaths.Add(Path.Combine(
 			Target.WindowsPlatform.WindowsSdkDir!,
