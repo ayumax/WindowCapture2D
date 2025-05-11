@@ -1,52 +1,115 @@
 # WindowCapture2D
-Library for capturing and displaying windows in real time with UnrealEngine.
 
-Captures in specified window units.
+## Overview
+WindowCapture2D is an Unreal Engine plugin that enables low-latency, high-performance window-based capture on Windows.
 
-You can also capture windows hidden behind other windows.
-
-Captured windows can be attached to meshes or UMG in 3D space.
+It supports capturing background windows, and the captured images can be attached to meshes or UMG in 3D space.
 
 ![ed99cc1218473bb4accc3c5d217454c4](https://user-images.githubusercontent.com/8191970/59857826-b31e1400-93b4-11e9-80df-13e39a0e1ec6.gif)
 
+## Supported UE Versions
+| UE Version | Support Status | Branch Name |
+|------------|---------------|-------------|
+| UE 5.5     | ✅ Supported  | UE5.5       |
+| UE 5.4     | ✅ Supported  | UE5.4       |
+| UE 5.3     | ✅ Supported  | UE5.3       |
+| Others     | 🔄 Check docs | master      |
 
-## UE4 Marketplace
-[https://www.unrealengine.com/marketplace/ja/slug/windowcapture2d](https://www.unrealengine.com/marketplace/ja/slug/windowcapture2d)
+With support for UE5.x, the capture method has changed compared to the previous WindowCapture2D plugin.
 
+The UE5.x compatible plugin is designed to deliver even higher performance than the previous UE4.x version.
 
-# Quick Start
-Please check "show engine content" and "show plugin content"
+For UE4 support, please use the UE4.x branch.
+
+## How to Obtain
+- [Unreal Engine Marketplace](https://www.fab.com/ja/listings/96541798-870b-40a5-b5ec-b3981e88272f)
+- GitHub: https://github.com/ayumax/WindowCapture2D
+
+## Installation Guide
+
+### From Marketplace
+1. Purchase and download the plugin from the Marketplace.
+2. Add it to your project from the "Library" section in the UE Launcher.
+3. Enable WindowCapture2D from "Edit" → "Plugins" in the UE editor.
+
+### From GitHub
+1. Clone this repository: `git clone https://github.com/ayumax/WindowCapture2D`
+2. Copy the `Plugins` directory into your project folder.
+3. Build the plugin (requires a C++ build environment).
+4. Enable WindowCapture2D from "Edit" → "Plugins" in the UE editor.
+
+### Compatibility Check
+Select the appropriate branch for your Unreal Engine version.
+
+## Quick Start
+
+1. Enable "show engine content" and "show plugin content".
 
 ![showcontent](https://user-images.githubusercontent.com/8191970/60973786-dc9edf80-a363-11e9-8eb4-c01deb0135c5.png)
 
-## When Actor is placed
-1. Put "WindowCapturePlane" at the level
+### When placing an Actor
+1. Place "WindowCapturePlane" in your level.
 
 ![setactor](https://user-images.githubusercontent.com/8191970/60768239-afe98e80-a0fd-11e9-989f-445cf6779517.png)
 
-## When Widget is placed
-1. Place "WindowCaptureUMG" in UMG
+### When placing a Widget
+1. Place "WindowCaptureUMG" in your UMG.
 
 ![umg](https://user-images.githubusercontent.com/8191970/60768308-ffc85580-a0fd-11e9-8e2f-7d99cc2893c5.png)
 
-1. Set various properties
+2. Set various properties.
 
 ![image](https://user-images.githubusercontent.com/8191970/59692049-18400100-921f-11e9-9e09-c945c744c05c.png)
 
-| Property | Description |
-|:-----------|:------------|
-| Capture Target Title | Title string of the window that you want to capture |
-| Title Matching Window Search | Title string matching method |
-| Frame Rate | Interval to capture the window (fps) |
-| Check Window Size | When on, changes the texture size by monitoring the window size change <br/> If enabled, the load will be high|
-| Cut Shadow| Remove the shadow of the window from the capture target |
+| Property                   | Description                                      |
+|:---------------------------|:-------------------------------------------------|
+| Capture Target Title       | Title string of the window you want to capture   |
+| Title Matching Window Search | Window title matching method                    |
+| Frame Rate                 | Capture frame rate (fps)                         |
 
-# Title Matching Window Search
+## Feature Details
 
-| Type | Description |
-|:-----------|:------------|
-| PerfectMatch | Must match exactly with the input string　|
-| ForwardMatch | Compare with the input string in a forward match|
-| PartialMatch | Compare with the input string in a partial match|
-| BackwardMatch | Compare with the input string in a backward match|
-| RegularExpression | Compare using regular expressions |
+- Low-latency, high-performance window capture for Windows
+- Supports capturing background windows
+- Captured images can be attached to 3D meshes or UMG
+- Title matching (Perfect, Forward, Partial, Backward, Regular Expression)
+- Supports both Unreal Engine C++ and Blueprint
+
+### Title Matching Methods
+
+| Type              | Description                                  |
+|:------------------|:---------------------------------------------|
+| PerfectMatch      | Exact match with the input string             |
+| ForwardMatch      | Forward match with the input string           |
+| PartialMatch      | Partial match with the input string           |
+| BackwardMatch     | Backward match with the input string          |
+| RegularExpression | Match using regular expressions               |
+
+## Usage Examples
+
+### Blueprint Example
+- See "Quick Start" above.
+- Easy to use with Blueprint.
+
+### C++ Example
+```cpp
+// Create a CaptureMachine and start capturing
+UCaptureMachine* Capture = NewObject<UCaptureMachine>();
+Capture->Start();
+// ... Release with Dispose() when done
+Capture->Dispose();
+```
+
+## Notes
+- Does not work on environments other than Windows.
+- Capturing windows displayed on large screens such as 4K monitors requires a high-performance CPU and GPU.
+  - If the frame rate is low, please lower the screen resolution.
+- Some types of windows may not be capturable.
+
+## License
+This plugin is provided under the MIT License.  
+However, if you download and use it from the Epic Games Marketplace, the Epic Games license terms will apply.
+
+## Contributing
+Bug reports, feature requests, and pull requests are welcome.  
+Please select the appropriate branch for your Unreal Engine version.

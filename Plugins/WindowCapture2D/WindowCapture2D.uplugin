@@ -21,6 +21,14 @@
       "WhitelistPlatforms": [
         "Win64"
       ]
+    },
+    {
+      "Name": "WindowCapture2DTests",
+      "Type": "DeveloperTool",
+      "LoadingPhase": "Default",
+      "WhitelistPlatforms": [
+        "Win64"
+      ]
     }
   ]
 }
