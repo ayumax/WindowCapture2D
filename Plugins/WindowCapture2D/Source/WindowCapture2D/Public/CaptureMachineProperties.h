@@ -50,6 +50,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)
 	ETitleMatchingWindowSearch TitleMatchingWindowSearch = ETitleMatchingWindowSearch::ForwardMatch;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D)
+	// Frame rate limit: 1 to 120
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WindowCapture2D, meta = (ClampMin = 1, ClampMax = 120, UIMin = 1, UIMax = 120))
 	int32 FrameRate = 30;
 };

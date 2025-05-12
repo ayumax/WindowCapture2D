@@ -98,7 +98,7 @@ bool FWindowCaptureSession_StartWithInvalidHwndTest::RunTest(const FString& Para
     HWND hwnd = (HWND)0x12345678; // Invalid handle
     WindowCaptureSession session;
     int result = session.Start(hwnd);
-    TestNotEqual(TEXT("Start should fail with invalid hwnd"), result, 0);
+    TestEqual(TEXT("Start should fail with invalid hwnd"), result, -1);
     session.Stop();
     return true;
 }

@@ -12,6 +12,7 @@
 #include <winrt/Windows.Foundation.h>
 #include "Utils/WCWorkerThread.h"
 #include "HAL/RunnableThread.h"
+#include "WindowCapture2DMacros.h"
 
 inline winrt::Windows::Graphics::DirectX::Direct3D11::IDirect3DDevice CreateDirect3DDevice(ID3D11Device* d3dDevice)
 {
@@ -87,7 +88,7 @@ void WindowCaptureSession::InitializeCaptureResources()
 
 	if (FAILED(hr))
 	{
-		throw std::runtime_error("Failed to create D3D11 device");
+		WC_LOG(Error, TEXT("Failed to create D3D11 device"));
 	}
 
 	m_d3dDevice = device;
@@ -142,72 +143,79 @@ bool WindowCaptureSession::CaptureWork()
 {
 	if (m_state != CaptureState::Running) { return false; }
 
-	auto frame = m_framePool.TryGetNextFrame();
-	if (!frame) { return true; }
-
-	auto surface = frame.Surface();
-
-	winrt::impl::com_ref<::Windows::Graphics::DirectX::Direct3D11::IDirect3DDxgiInterfaceAccess> dxgiAccess =
-		surface.as<::Windows::Graphics::DirectX::Direct3D11::IDirect3DDxgiInterfaceAccess>();
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> srcTexture;
-	winrt::check_hresult(dxgiAccess->GetInterface(__uuidof(ID3D11Texture2D), reinterpret_cast<void**>(srcTexture.GetAddressOf())));
-	D3D11_TEXTURE2D_DESC desc = {};
-
-	srcTexture->GetDesc(&desc);
-
-	if (m_captureItem)
+	try
 	{
-		auto itemSize = m_captureItem.Size();
-		if (itemSize.Width != static_cast<int>(desc.Width) || itemSize.Height != static_cast<int>(desc.Height))
+		auto frame = m_framePool.TryGetNextFrame();
+		if (!frame) { return true; }
+
+		auto surface = frame.Surface();
+
+		winrt::impl::com_ref<::Windows::Graphics::DirectX::Direct3D11::IDirect3DDxgiInterfaceAccess> dxgiAccess =
+			surface.as<::Windows::Graphics::DirectX::Direct3D11::IDirect3DDxgiInterfaceAccess>();
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> srcTexture;
+		winrt::check_hresult(dxgiAccess->GetInterface(__uuidof(ID3D11Texture2D), reinterpret_cast<void**>(srcTexture.GetAddressOf())));
+		D3D11_TEXTURE2D_DESC desc = {};
+
+		srcTexture->GetDesc(&desc);
+
+		if (m_captureItem)
 		{
-			m_frameArrivedRevoker.revoke();
-			m_framePool.Close();
-			m_session.Close();
-			InitializeWinRTCaptureResources();
-			return true;
-		}
-	}
-
-	if (!m_stagingTexture || m_stagingDesc.Width != desc.Width || m_stagingDesc.Height != desc.Height)
-	{
-		desc.Usage = D3D11_USAGE_STAGING;
-		desc.BindFlags = 0;
-		desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-		desc.MiscFlags = 0;
-		m_stagingTexture.Reset();
-		m_d3dDevice->CreateTexture2D(&desc, nullptr, &m_stagingTexture);
-		m_stagingDesc = desc;
-	}
-
-	m_d3dContext->CopyResource(m_stagingTexture.Get(), srcTexture.Get());
-	D3D11_MAPPED_SUBRESOURCE mapped = {};
-
-	m_d3dContext->Map(m_stagingTexture.Get(), 0, D3D11_MAP_READ, 0, &mapped);
-	UINT rowPitch = desc.Width * 4;
-	UINT bufferSize = rowPitch * desc.Height;
-
-	{
-		FScopeLock lock(&m_mutex);
-		if (m_state != CaptureState::Running) { return false; }
-
-		if (m_buffer.Num() != bufferSize)
-		{
-			m_buffer.SetNum(bufferSize, true);
+			auto itemSize = m_captureItem.Size();
+			if (itemSize.Width != static_cast<int>(desc.Width) || itemSize.Height != static_cast<int>(desc.Height))
+			{
+				m_frameArrivedRevoker.revoke();
+				m_framePool.Close();
+				m_session.Close();
+				InitializeWinRTCaptureResources();
+				return true;
+			}
 		}
 
-		UINT copyBytesPerLine = desc.Width * 4;
-		for (UINT y = 0; y < desc.Height; ++y)
+		if (!m_stagingTexture || m_stagingDesc.Width != desc.Width || m_stagingDesc.Height != desc.Height)
 		{
-			memcpy(
-				m_buffer.GetData() + (desc.Height - 1 - y) * rowPitch,
-				(BYTE*)mapped.pData + y * mapped.RowPitch,
-				copyBytesPerLine
-			);
+			desc.Usage = D3D11_USAGE_STAGING;
+			desc.BindFlags = 0;
+			desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+			desc.MiscFlags = 0;
+			m_stagingTexture.Reset();
+			m_d3dDevice->CreateTexture2D(&desc, nullptr, &m_stagingTexture);
+			m_stagingDesc = desc;
 		}
-	}
 
-	m_d3dContext->Unmap(m_stagingTexture.Get(), 0);
-	m_hasNewFrame.store(true, std::memory_order_release);
+		m_d3dContext->CopyResource(m_stagingTexture.Get(), srcTexture.Get());
+		D3D11_MAPPED_SUBRESOURCE mapped = {};
+
+		m_d3dContext->Map(m_stagingTexture.Get(), 0, D3D11_MAP_READ, 0, &mapped);
+		UINT rowPitch = desc.Width * 4;
+		UINT bufferSize = rowPitch * desc.Height;
+
+		{
+			FScopeLock lock(&m_mutex);
+			if (m_state != CaptureState::Running) { return false; }
+
+			if (m_buffer.Num() != bufferSize)
+			{
+				m_buffer.SetNum(bufferSize, EAllowShrinking::Yes);
+			}
+
+			UINT copyBytesPerLine = desc.Width * 4;
+			for (UINT y = 0; y < desc.Height; ++y)
+			{
+				memcpy(
+					m_buffer.GetData() + (desc.Height - 1 - y) * rowPitch,
+					(BYTE*)mapped.pData + y * mapped.RowPitch,
+					copyBytesPerLine
+				);
+			}
+		}
+
+		m_d3dContext->Unmap(m_stagingTexture.Get(), 0);
+		m_hasNewFrame.store(true, std::memory_order_release);
+	}
+	catch (...)
+	{
+		WC_LOG(Warning, TEXT("Capture session work failed"));
+	}
 
 	return true;
 }
@@ -225,8 +233,17 @@ int WindowCaptureSession::Start(HWND hWnd)
 
 	m_state = CaptureState::Running;
 
-	InitializeCaptureResources();
-	InitializeWinRTCaptureResources();
+	try
+	{
+		InitializeCaptureResources();
+		InitializeWinRTCaptureResources();
+	}
+	catch (...)
+	{
+		WC_LOG(Warning, TEXT("Capture session start failed"));
+
+		return -2;
+	}
 
 	_workerThread = new FWCWorkerThread([this]() { return CaptureWork(); });
 	_workerThreadHandle = FRunnableThread::Create(_workerThread, TEXT("WindowCaptureSessionWorker"));
@@ -240,34 +257,49 @@ void WindowCaptureSession::Stop()
 
 	m_state = CaptureState::Stopped;
 
-	m_frameArrivedRevoker.revoke();
-
-	if (_workerThread)
+	try
 	{
-		_workerThread->Stop();
+		m_frameArrivedRevoker.revoke();
+
+		if (_workerThread)
+		{
+			_workerThread->Stop();
+		}
+
+		if (_workerThreadHandle)
+		{
+			_workerThreadHandle->Kill(true);
+			_workerThreadHandle->WaitForCompletion();
+			delete _workerThreadHandle;
+			_workerThreadHandle = nullptr;
+		}
+
+		if (_workerThread)
+		{
+			delete _workerThread;
+			_workerThread = nullptr;
+		}
+
+		if (m_session)
+		{
+			m_session.Close();
+		}
+
+		if (m_framePool)
+		{
+			m_framePool.Close();
+		}		
+	}
+	catch (...)
+	{
+		WC_LOG(Warning, TEXT("Capture session stop failed"));
 	}
 
-	if (_workerThreadHandle)
-	{
-		_workerThreadHandle->Kill(true);
-		_workerThreadHandle->WaitForCompletion();
-		delete _workerThreadHandle;
-		_workerThreadHandle = nullptr;
-	}
-
-	if (_workerThread)
-	{
-		delete _workerThread;
-		_workerThread = nullptr;
-	}
-
-	m_session.Close();
-	m_framePool.Close();
 	m_session = nullptr;
 	m_framePool = nullptr;
 	m_captureItem = nullptr;
 	m_d3dDevice = nullptr;
 	m_d3dContext = nullptr;
-	m_stagingTexture = nullptr;
+	m_stagingTexture = nullptr;	
 }
 #endif
