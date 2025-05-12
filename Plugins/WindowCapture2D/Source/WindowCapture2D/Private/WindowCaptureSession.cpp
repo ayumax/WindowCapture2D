@@ -226,7 +226,15 @@ int WindowCaptureSession::Start(HWND hWnd)
 
 	if (!::IsWindow(hWnd))
 	{
+		WC_LOG(Warning, TEXT("Invalid window handle"));
 		return -1;
+	}
+
+	__wchar_t windowTitle[1024];
+	if (GetWindowText(hWnd, windowTitle, 1024) == 0)
+	{
+		WC_LOG(Warning, TEXT("Failed to get window title"));
+		return -3;
 	}
 
 	if (m_state == CaptureState::Running) return 1;
