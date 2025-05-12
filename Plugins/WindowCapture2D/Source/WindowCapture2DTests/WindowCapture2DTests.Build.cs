@@ -10,6 +10,7 @@ public class WindowCapture2DTests : ModuleRules
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		ShadowVariableWarningLevel = WarningLevel.Warning;
+		bEnableExceptions = true;
 
 		PublicDependencyModuleNames.AddRange(
 			new string[]
@@ -25,7 +26,6 @@ public class WindowCapture2DTests : ModuleRules
 			new string[]
 			{
 				"WindowCapture2D",
-				"UnrealEd",
 				"AutomationController",
 				"FunctionalTesting",
 				"Slate",
@@ -38,6 +38,7 @@ public class WindowCapture2DTests : ModuleRules
 
 		if (Target.bBuildEditor)
 		{
+			PrivateDependencyModuleNames.Add("UnrealEd");
 			PrivateDependencyModuleNames.Add("EditorStyle");
 		}
 
