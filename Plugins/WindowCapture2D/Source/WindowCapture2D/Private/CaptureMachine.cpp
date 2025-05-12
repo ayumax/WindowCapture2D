@@ -5,20 +5,45 @@
 #include "Async/Async.h"
 #include "Internationalization/Regex.h"
 #include "WindowCaptureSession.h"
-
-#define WC_LOG(Format, ...) UE_LOG(LogTemp, Warning, TEXT("[WC][%p] %s: " Format), this, TEXT(__FUNCTION__), ##__VA_ARGS__)
+#include "WindowCapture2DMacros.h"
 
 UCaptureMachine::UCaptureMachine()
 {
 }
 
-void UCaptureMachine::Start()
+UTexture2D* UCaptureMachine::Start()
 {
+	_TickHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &UCaptureMachine::TickCapture), 1.0f / static_cast<float>(Properties.FrameRate));
+	
 	m_Session = new WindowCaptureSession();
 
-	CreateTexture();
+	m_TargetWindow = nullptr;
 
-	_TickHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &UCaptureMachine::TickCapture), 1.0f / (float)Properties.FrameRate);
+	if (Properties.CaptureTargetTitle.IsEmpty())
+	{
+		WC_LOG(Log, "CaptureTargetTitle is empty : %s", *Properties.CaptureTargetTitle);
+		return nullptr;
+	}
+
+	::EnumWindows([](HWND hwnd, LPARAM lParam) -> BOOL
+		{
+			UCaptureMachine* me = reinterpret_cast<UCaptureMachine*>(lParam);
+			return me->FindTargetWindow(hwnd);
+		}, reinterpret_cast<LPARAM>(this));
+
+	if (!m_TargetWindow || !::IsWindow(m_TargetWindow))
+	{
+		WC_LOG(Log, "Target window not found : %s", *Properties.CaptureTargetTitle);
+		return nullptr;
+	}
+
+	m_Session->Start(m_TargetWindow);
+
+	GetWindowSize();
+	
+	ReCreateTexture();
+	
+	return TextureTarget;
 }
 
 void UCaptureMachine::Dispose()
@@ -28,32 +53,25 @@ void UCaptureMachine::Dispose()
 		return;
 	}
 	
-	WC_LOG("[this=%p] Dispose called (_IsDisposed=%d)", this, _IsDisposed ? 1 : 0);
+	WC_LOG(Log, "Dispose called", *Properties.CaptureTargetTitle);
 	
 	if (_TickHandle.IsValid())
 	{
-		WC_LOG("[this=%p] RemoveTicker: before", this);
 		FTSTicker::GetCoreTicker().RemoveTicker(_TickHandle);
 		_TickHandle.Reset();
-		WC_LOG("[this=%p] RemoveTicker: after", this);
 	}
-
+	
 	if (m_Session)
 	{
 		m_Session->Stop();
-		WC_LOG("[this=%p] Session Stop1", this);
 		delete m_Session;
-		WC_LOG("[this=%p] Session Stop2", this);
 		m_Session = nullptr;
-		WC_LOG("[this=%p] Stop: after", this);
 	}
 	
 	if (TextureTarget)
 	{
-		WC_LOG("[this=%p] ReleaseResource TextureTarget: before", this);
 		TextureTarget->ReleaseResource();
 		TextureTarget = nullptr;
-		WC_LOG("[this=%p] ReleaseResource TextureTarget: after", this);
 	}
 
 	_IsDisposed = true;
@@ -71,86 +89,64 @@ bool UCaptureMachine::TickCapture(float deltaTime)
 	}
 
 	WCFrameDesc FrameDesc;
+	
+	int32 Height = 0;
+	int32 Width = 0;
+		
+	if (!m_Session->GetFrameInfo(&FrameDesc))
 	{
-		int32 Height = 0;
-		int32 Width = 0;
-		
-		if (!m_Session->GetFrameInfo(&FrameDesc))
-		{
-			return true;
-		}
-
-		Width = FrameDesc.width;
-		Height = FrameDesc.height;
-
-		if (Width != m_WindowSize.X || Height != m_WindowSize.Y)
-		{
-			m_WindowSize = FIntVector2D(Width, Height);
-
-			ReCreateTexture();
-			ChangeTexture.Broadcast(TextureTarget);
-		}
-		
-		if (!m_Session->HasNewFrame()) return true;
-			
-		if (TextureTarget && m_Session->m_buffer.Num() == Width * Height * 4)
-		{
-			if (FTextureResource* TextureResource = TextureTarget->GetResource())
-			{
-				if (FRHITexture* RHITexture = TextureResource->GetTextureRHI())
-				{
-					ENQUEUE_RENDER_COMMAND(UpdateTextureRegion)(
-						[RHITexture, Width, Height, this](FRHICommandListImmediate& RHICmdList)
-						{
-							if (!RHITexture || _IsDisposed) {
-								return;
-							}
-
-							m_Session->UseBuffer([this, Width, Height, &RHITexture, &RHICmdList]()
-							{
-								if (m_Session->m_buffer.Num() != Width * Height * 4)
-								{
-									return;
-								}
-								
-								FUpdateTextureRegion2D Region(0, 0, 0, 0, Width, Height);
-								RHICmdList.UpdateTexture2D(
-									RHITexture,
-									0,
-									Region,
-									Width * 4,
-									m_Session->m_buffer.GetData()
-								);
-							});
-						});
-				}
-			}
-		}		
+		return true;
 	}
 
-	return true;
-}
+	Width = FrameDesc.width;
+	Height = FrameDesc.height;
 
+	if (Width != m_WindowSize.X || Height != m_WindowSize.Y)
+	{
+		m_WindowSize = FIntVector2D(Width, Height);
 
-UTexture2D* UCaptureMachine::CreateTexture()
-{
-	m_TargetWindow = nullptr;
+		ReCreateTexture();
+		ChangeTexture.Broadcast(TextureTarget);
+	}
+		
+	if (!m_Session->HasNewFrame()) return true;
+			
+	if (!TextureTarget || m_Session->m_buffer.Num() != Width * Height * 4)
+	{
+		return true;
+	}
 
-	::EnumWindows([](HWND hwnd, LPARAM lParam) -> BOOL
+	FTextureResource* TextureResource = TextureTarget->GetResource();
+	if (!TextureResource) return true;
+	FRHITexture* RHITexture = TextureResource->GetTextureRHI();
+	if (!RHITexture) return true;
+	
+	ENQUEUE_RENDER_COMMAND(UpdateTextureRegion)(
+	[RHITexture, Width, Height, this](FRHICommandListImmediate& RHICmdList)
+	{
+		if (!RHITexture || _IsDisposed) {
+			return;
+		}
+
+		m_Session->UseBuffer([this, Width, Height, &RHITexture, &RHICmdList]()
 		{
-			UCaptureMachine* my = (UCaptureMachine*)lParam;
-			return my->FindTargetWindow(hwnd);
-		}, (LPARAM)this);
+			if (m_Session->m_buffer.Num() != Width * Height * 4)
+			{
+				return;
+			}
+				
+			FUpdateTextureRegion2D Region(0, 0, 0, 0, Width, Height);
+			RHICmdList.UpdateTexture2D(
+				RHITexture,
+				0,
+				Region,
+				Width * 4,
+				m_Session->m_buffer.GetData()
+			);
+		});
+	});
 
-	if (!m_TargetWindow) return nullptr;
-
-	m_Session->Start(m_TargetWindow);
-
-	GetWindowSize(m_TargetWindow);
-	
-	ReCreateTexture();
-	
-	return TextureTarget;	
+	return true;
 }
 
 bool UCaptureMachine::FindTargetWindow(HWND hWnd)
@@ -200,18 +196,12 @@ bool UCaptureMachine::FindTargetWindow(HWND hWnd)
 	return true;
 }
 
-void UCaptureMachine::GetWindowSize(HWND hWnd)
+void UCaptureMachine::GetWindowSize()
 {
-	if (!::IsWindow(hWnd))
-	{
-		m_WindowSize = FIntVector2D(0, 0);
-		return;
-	}
-
 	WCFrameDesc FrameDesc;
 	if (!m_Session->GetFrameInfo(&FrameDesc))
 	{
-		WC_LOG("[this=%p] GetFrameInfo failed", this);
+		WC_LOG(Log, "GetFrameInfo failed");
 		return;
 	}
 	
@@ -220,6 +210,11 @@ void UCaptureMachine::GetWindowSize(HWND hWnd)
 
 void UCaptureMachine::ReCreateTexture()
 {
+	if (TextureTarget)
+	{
+		TextureTarget->ReleaseResource();
+	}
+	
 	if (m_WindowSize.X == 0 || m_WindowSize.Y == 0)
 	{
 		TextureTarget = nullptr;
