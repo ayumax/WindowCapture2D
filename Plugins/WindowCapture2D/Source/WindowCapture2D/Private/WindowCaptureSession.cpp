@@ -195,7 +195,7 @@ bool WindowCaptureSession::CaptureWork()
 
 			if (m_buffer.Num() != bufferSize)
 			{
-				m_buffer.SetNum(bufferSize, EAllowShrinking::Yes);
+				m_buffer.SetNum(bufferSize, true);
 			}
 
 			UINT copyBytesPerLine = desc.Width * 4;
