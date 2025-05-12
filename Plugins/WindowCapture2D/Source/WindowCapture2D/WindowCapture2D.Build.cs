@@ -9,6 +9,7 @@ public class WindowCapture2D : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		CppStandard = CppStandardVersion.Latest;
+		bEnableExceptions = true;
 		
 		PublicDependencyModuleNames.AddRange(["Core"]);
 

@@ -22,8 +22,7 @@ bool FCaptureMachineCreateTextureTest::RunTest(const FString& Parameters)
     UCaptureMachine* CaptureMachine = NewObject<UCaptureMachine>();
     CaptureMachine->Properties.CaptureTargetTitle = TEXT("WindowCapture2D");
     CaptureMachine->Properties.TitleMatchingWindowSearch = ETitleMatchingWindowSearch::ForwardMatch;
-    CaptureMachine->Start();
-    UTexture2D* Texture = CaptureMachine->CreateTexture();
+    UTexture2D* Texture = CaptureMachine->Start();
     TestNotNull(TEXT("Texture should not be null if window found (forward match)"), Texture);
     CaptureMachine->Dispose();
     return true;
@@ -36,8 +35,7 @@ bool FCaptureMachineCreateTextureNotFoundTest::RunTest(const FString& Parameters
     UCaptureMachine* CaptureMachine = NewObject<UCaptureMachine>();
     CaptureMachine->Properties.CaptureTargetTitle = TEXT("DefinitelyNotExistWindowTitle");
     CaptureMachine->Properties.TitleMatchingWindowSearch = ETitleMatchingWindowSearch::PerfectMatch;
-    CaptureMachine->Start();
-    UTexture2D* Texture = CaptureMachine->CreateTexture();
+    UTexture2D* Texture = CaptureMachine->Start();
     TestNull(TEXT("Texture should be null if window not found"), Texture);
     CaptureMachine->Dispose();
     return true;
