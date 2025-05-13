@@ -52,6 +52,7 @@ bool FWindowCaptureSession_StartStopTest::RunTest(const FString& Parameters)
     WindowCaptureSession session;
     int result = session.Start(hwnd);
     TestEqual(TEXT("Start returns 0 (success)"), result, 0);
+    WaitForNewFrame(session);
     session.Stop();
     return true;
 }
@@ -80,7 +81,7 @@ bool FWindowCaptureSession_GetFrameInfoTest::RunTest(const FString& Parameters)
     TestNotNull(TEXT("Target window should exist"), hwnd);
     WindowCaptureSession session;
     session.Start(hwnd);
-    Sleep(100);
+    WaitForNewFrame(session);
     WCFrameDesc desc;
     bool ok = session.GetFrameInfo(&desc);
     TestTrue(TEXT("GetFrameInfo should return true"), ok);
@@ -99,6 +100,7 @@ bool FWindowCaptureSession_StartWithInvalidHwndTest::RunTest(const FString& Para
     WindowCaptureSession session;
     int result = session.Start(hwnd);
     TestEqual(TEXT("Start should fail with invalid hwnd"), result, -1);
+    WaitForNewFrame(session);
     session.Stop();
     return true;
 }

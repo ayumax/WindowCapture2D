@@ -63,7 +63,7 @@ bool WindowCaptureSession::GetFrameInfo(WCFrameDesc* OutDesc) const
 
 void WindowCaptureSession::UseBuffer(const TFunction<void()>& Action)
 {
-	FScopeLock lock(&m_mutex);
+	FScopeLock lock(&m_mutex_buffer);
 	Action();
 }
 
@@ -133,7 +133,12 @@ void WindowCaptureSession::InitializeWinRTCaptureResources()
 
 	m_frameArrivedRevoker = m_framePool.FrameArrived(winrt::auto_revoke, [this](auto&&, auto&&)
 	{
-		_workerThread->WakeUp();
+		FScopeLock lock(&m_mutex_thread);
+
+		if (m_workerThread)
+		{
+			m_workerThread->WakeUp();
+		}
 	});
 
 	m_session.StartCapture();
@@ -143,6 +148,8 @@ bool WindowCaptureSession::CaptureWork()
 {
 	if (m_state != CaptureState::Running) { return false; }
 
+	FScopeLock lockThread(&m_mutex_thread);
+	
 	try
 	{
 		auto frame = m_framePool.TryGetNextFrame();
@@ -190,7 +197,7 @@ bool WindowCaptureSession::CaptureWork()
 		UINT bufferSize = rowPitch * desc.Height;
 
 		{
-			FScopeLock lock(&m_mutex);
+			FScopeLock lock(&m_mutex_buffer);
 			if (m_state != CaptureState::Running) { return false; }
 
 			if (m_buffer.Num() != bufferSize)
@@ -226,7 +233,15 @@ int WindowCaptureSession::Start(HWND hWnd)
 
 	if (!::IsWindow(hWnd))
 	{
+		WC_LOG(Warning, TEXT("Invalid window handle"));
 		return -1;
+	}
+
+	__wchar_t windowTitle[1024];
+	if (GetWindowText(hWnd, windowTitle, 1024) == 0)
+	{
+		WC_LOG(Warning, TEXT("Failed to get window title"));
+		return -3;
 	}
 
 	if (m_state == CaptureState::Running) return 1;
@@ -245,8 +260,8 @@ int WindowCaptureSession::Start(HWND hWnd)
 		return -2;
 	}
 
-	_workerThread = new FWCWorkerThread([this]() { return CaptureWork(); });
-	_workerThreadHandle = FRunnableThread::Create(_workerThread, TEXT("WindowCaptureSessionWorker"));
+	m_workerThread = new FWCWorkerThread([this]() { return CaptureWork(); });
+	m_workerThreadHandle = FRunnableThread::Create(m_workerThread, TEXT("WindowCaptureSessionWorker"));
 
 	return 0;
 }
@@ -257,27 +272,29 @@ void WindowCaptureSession::Stop()
 
 	m_state = CaptureState::Stopped;
 
+	FScopeLock lock(&m_mutex_thread);
+
 	try
 	{
 		m_frameArrivedRevoker.revoke();
 
-		if (_workerThread)
+		if (m_workerThread)
 		{
-			_workerThread->Stop();
+			m_workerThread->Stop();
 		}
 
-		if (_workerThreadHandle)
+		if (m_workerThreadHandle)
 		{
-			_workerThreadHandle->Kill(true);
-			_workerThreadHandle->WaitForCompletion();
-			delete _workerThreadHandle;
-			_workerThreadHandle = nullptr;
+			m_workerThreadHandle->Kill(true);
+			m_workerThreadHandle->WaitForCompletion();
+			delete m_workerThreadHandle;
+			m_workerThreadHandle = nullptr;
 		}
 
-		if (_workerThread)
+		if (m_workerThread)
 		{
-			delete _workerThread;
-			_workerThread = nullptr;
+			delete m_workerThread;
+			m_workerThread = nullptr;
 		}
 
 		if (m_session)
