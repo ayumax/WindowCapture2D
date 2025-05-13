@@ -49,7 +49,8 @@ private:
 	bool CaptureWork();
 	
 	HWND m_hwnd;
-	FCriticalSection m_mutex;
+	FCriticalSection m_mutex_buffer;
+	FCriticalSection m_mutex_thread;
 	
 	std::atomic<bool> m_hasNewFrame{false};
 	
@@ -73,7 +74,7 @@ private:
 	void InitializeCaptureResources();
 	void InitializeWinRTCaptureResources();
 
-	class FWCWorkerThread* _workerThread = nullptr;
-	class FRunnableThread* _workerThreadHandle = nullptr;
+	class FWCWorkerThread* m_workerThread = nullptr;
+	class FRunnableThread* m_workerThreadHandle = nullptr;
 };
 #endif

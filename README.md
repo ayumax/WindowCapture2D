@@ -5,6 +5,8 @@ WindowCapture2D is an Unreal Engine plugin that enables low-latency, high-perfor
 
 It supports capturing background windows, and the captured images can be attached to meshes or UMG in 3D space.
 
+**If you want to confirm whether this plugin works in your environment, you can download the Tester application from the Releases of this repository and check if the capture works correctly.**
+
 ![ed99cc1218473bb4accc3c5d217454c4](https://user-images.githubusercontent.com/8191970/59857826-b31e1400-93b4-11e9-80df-13e39a0e1ec6.gif)
 
 ## Supported UE Versions
@@ -25,9 +27,9 @@ For UE4 support, please use the UE4.x branch.
 - [Unreal Engine Marketplace](https://www.fab.com/ja/listings/96541798-870b-40a5-b5ec-b3981e88272f)
 - GitHub: https://github.com/ayumax/WindowCapture2D
 
-The WindowCapture2D plugin for UE5.x has not yet been released on the Marketplace. It is currently in preparation for release.
-
 ## Installation Guide
+
+If you don't have a C++ build environment, download the pre-built package from the Marketplace.
 
 ### From Marketplace
 1. Purchase and download the plugin from the Marketplace.
