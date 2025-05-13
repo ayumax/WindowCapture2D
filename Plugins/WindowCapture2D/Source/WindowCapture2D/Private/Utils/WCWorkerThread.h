@@ -23,4 +23,6 @@ private:
 	TFunction<bool()> Work;
 	
 	FEvent* _waitEvent;
+
+	mutable FCriticalSection Mutex;
 };

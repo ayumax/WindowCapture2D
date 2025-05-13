@@ -77,3 +77,8 @@ Plugins/*/Intermediate/*
 DerivedDataCache/*
 
 .vsconfig
+
+*.*~
+*.DotSettings.user
+
+.idea/*
