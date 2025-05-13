@@ -24,9 +24,13 @@ uint32 FWCWorkerThread::Run()
 {
 	while (ContinueRun)
 	{
-		if (_waitEvent)
 		{
-			_waitEvent->Wait(100);
+			FScopeLock lock(&Mutex);
+		
+			if (_waitEvent)
+			{
+				_waitEvent->Wait(100);
+			}
 		}
 		
 		if (!ContinueRun)
@@ -47,6 +51,8 @@ void FWCWorkerThread::Stop()
 {
 	ContinueRun = false;
 
+	FScopeLock lock(&Mutex);
+
 	if (_waitEvent)
 	{
 		_waitEvent->Trigger();
@@ -61,6 +67,8 @@ void FWCWorkerThread::Exit()
 {
 	ContinueRun = false;
 
+	FScopeLock lock(&Mutex);
+
 	if (_waitEvent)
 	{
 		_waitEvent->Trigger();
@@ -73,6 +81,8 @@ void FWCWorkerThread::Exit()
 
 void FWCWorkerThread::WakeUp()
 {
+	FScopeLock lock(&Mutex);
+	
 	if (_waitEvent)
 	{
 		_waitEvent->Trigger();
