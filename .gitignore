@@ -82,3 +82,6 @@ DerivedDataCache/*
 *.DotSettings.user
 
 .idea/*
+.DS_Store
+Froola/results/*
+Froola/packages/*
