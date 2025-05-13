@@ -80,3 +80,5 @@ DerivedDataCache/*
 
 *.*~
 *.DotSettings.user
+
+.idea/*
