@@ -11,8 +11,6 @@ UWindowCaptureWidget::UWindowCaptureWidget(const FObjectInitializer& ObjectIniti
 
 void UWindowCaptureWidget::ReleaseSlateResources(bool bReleaseChildren)
 {
-	FlushRenderingCommands();
-
 	if (CaptureMachine)
 	{
 		CaptureMachine->Dispose();

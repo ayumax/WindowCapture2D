@@ -2,9 +2,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Runtime/Core/Public/HAL/Runnable.h"
-#include "Runtime/Core/Public/HAL/RunnableThread.h"
+#include "HAL/Runnable.h"
+#include "HAL/RunnableThread.h"
 #include "HAL/Event.h"
+#include "HAL/ThreadSafeBool.h"
 
 class WINDOWCAPTURE2D_API FWCWorkerThread : public FRunnable
 {
