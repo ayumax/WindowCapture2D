@@ -24,13 +24,9 @@ uint32 FWCWorkerThread::Run()
 {
 	while (ContinueRun)
 	{
+		if (_waitEvent)
 		{
-			FScopeLock lock(&Mutex);
-		
-			if (_waitEvent)
-			{
-				_waitEvent->Wait(100);
-			}
+			_waitEvent->Wait(100);
 		}
 		
 		if (!ContinueRun)
@@ -51,13 +47,9 @@ void FWCWorkerThread::Stop()
 {
 	ContinueRun = false;
 
-	FScopeLock lock(&Mutex);
-
 	if (_waitEvent)
 	{
 		_waitEvent->Trigger();
-		FPlatformProcess::ReturnSynchEventToPool(_waitEvent);
-		_waitEvent = nullptr;
 	}
 
 	FRunnable::Stop();
@@ -65,24 +57,21 @@ void FWCWorkerThread::Stop()
 
 void FWCWorkerThread::Exit()
 {
-	ContinueRun = false;
-
-	FScopeLock lock(&Mutex);
-
-	if (_waitEvent)
+	if (ContinueRun)
 	{
-		_waitEvent->Trigger();
-		FPlatformProcess::ReturnSynchEventToPool(_waitEvent);
-		_waitEvent = nullptr;
+		ContinueRun = false;
+    
+    	if (_waitEvent)
+    	{
+    		_waitEvent->Trigger();
+    	}
 	}
 
 	FRunnable::Exit();
 }
 
 void FWCWorkerThread::WakeUp()
-{
-	FScopeLock lock(&Mutex);
-	
+{	
 	if (_waitEvent)
 	{
 		_waitEvent->Trigger();
