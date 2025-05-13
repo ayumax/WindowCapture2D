@@ -12,6 +12,7 @@ using HWND = void*;
 #endif
 #include "HAL/CriticalSection.h"
 #include "Containers/Array.h"
+#include "Containers/Ticker.h"
 #include "HAL/PlatformAtomics.h"
 #include "CaptureMachine.generated.h"
 
