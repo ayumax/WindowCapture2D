@@ -110,6 +110,55 @@ Capture->Dispose();
   - If the frame rate is low, please lower the screen resolution.
 - Some types of windows may not be capturable.
 
+## WinRT
+This plugin uses WinRT to capture windows.
+
+WinRT is used under the MIT license.
+
+```
+C++ for the Windows Runtime (cppwinrt)
+
+Copyright (c) Microsoft Corporation
+All rights reserved. 
+
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+```
+
+Therefore, to build this plugin in your environment, Windows SDK v10.0.22000.0 or later is required.
+
+Additionally, this plugin includes the WinRT headers within the Plugin directory and uses them via include.
+
+This is because, in rare cases where an older version of WinRT is present in the environment, building the plugin may fail.
+
+If you want to build using the WinRT installed in your environment, please modify the following line in `WindowCapture2D.Build.cs` to add the directory on your system to the include path.
+
+```csharp
+var winrtDirectory = Path.Combine(ModuleDirectory, "Private", "cppwinrt");
+if (Directory.Exists(winrtDirectory))
+{
+    PrivateIncludePaths.Add(winrtDirectory);
+}
+```
+
 ## License
 This plugin is provided under the MIT License.  
 However, if you download and use it from the Epic Games Marketplace, the Epic Games license terms will apply.
