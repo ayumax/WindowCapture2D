@@ -8,46 +8,39 @@ public class WindowCapture2DTests : ModuleRules
 	public WindowCapture2DTests
 		(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		ShadowVariableWarningLevel = WarningLevel.Warning;
+		CppStandard = CppStandardVersion.Cpp20;
 		bEnableExceptions = true;
 
-		PublicDependencyModuleNames.AddRange(
+		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
 				"Core",
 				"CoreUObject",
 				"Engine",
-				"InputCore"
-			}
-		);
-
-		PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
-				"WindowCapture2D",
+				"InputCore",
 				"AutomationController",
 				"FunctionalTesting",
 				"Slate",
 				"SlateCore",
 				"RenderCore",
 				"UMG",
-				"RHI"
+				"RHI",
+				"WindowCapture2D",
 			}
 		);
+
+		var winrtDirectory = Path.Combine(ModuleDirectory, "..", "WindowCapture2D", "Private", "cppwinrt");
+		if (Directory.Exists(winrtDirectory))
+		{
+			PrivateIncludePaths.Add(winrtDirectory);
+		}
 
 		if (Target.bBuildEditor)
 		{
 			PrivateDependencyModuleNames.Add("UnrealEd");
 			PrivateDependencyModuleNames.Add("EditorStyle");
 		}
-
-		PublicSystemLibraries.AddRange(new string[] { "shlwapi.lib", "runtimeobject.lib", "D3D11.lib" });
-
-		PrivateIncludePaths.Add(Path.Combine(
-			Target.WindowsPlatform.WindowsSdkDir!,
-			"Include",
-			Target.WindowsPlatform.WindowsSdkVersion!,
-			"cppwinrt"));
 	}
 }
