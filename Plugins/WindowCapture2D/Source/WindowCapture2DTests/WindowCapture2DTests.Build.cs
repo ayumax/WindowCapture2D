@@ -42,16 +42,5 @@ public class WindowCapture2DTests : ModuleRules
 			PrivateDependencyModuleNames.Add("UnrealEd");
 			PrivateDependencyModuleNames.Add("EditorStyle");
 		}
-<<<<<<< HEAD
-
-		PublicSystemLibraries.AddRange(new string[] { "shlwapi.lib", "runtimeobject.lib", "D3D11.lib" });
-
-		PrivateIncludePaths.Add(Path.Combine(
-			Target.WindowsPlatform.WindowsSdkDir!,
-			"Include",
-			Target.WindowsPlatform.WindowsSdkVersion!,
-			"cppwinrt"));
-=======
->>>>>>> 1885c64 (WinRT headers have included in the plugin (#24))
 	}
 }
