@@ -260,7 +260,16 @@ int WindowCaptureSession::Start(HWND hWnd)
 		return -2;
 	}
 
-	m_workerThread = new FWCWorkerThread([this]() { return CaptureWork(); });
+	m_workerThread = new FWCWorkerThread(
+		[this]() { return CaptureWork(); },
+		[]() { 
+			winrt::init_apartment(winrt::apartment_type::single_threaded);
+			UE_LOG(LogTemp, Log, TEXT("Worker thread COM initialized (STA)"));
+		},
+		[]() { 
+			winrt::uninit_apartment(); 
+			UE_LOG(LogTemp, Log, TEXT("Worker thread COM uninitialized"));
+		});
 	m_workerThreadHandle = FRunnableThread::Create(m_workerThread, TEXT("WindowCaptureSessionWorker"));
 
 	return 0;
@@ -273,7 +282,7 @@ void WindowCaptureSession::Stop()
 	m_state = CaptureState::Stopped;
 
 	FScopeLock lock(&m_mutex_thread);
-
+	
 	try
 	{
 		m_frameArrivedRevoker.revoke();
