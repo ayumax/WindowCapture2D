@@ -2,10 +2,16 @@
 #include "WCWorkerThread.h"
 #include "Runtime/Core/Public/HAL/PlatformProcess.h"
 #include "HAL/Event.h"
+#include "WindowCapture2DMacros.h"
 
-FWCWorkerThread::FWCWorkerThread(const TFunction<bool()>& InWork)
+FWCWorkerThread::FWCWorkerThread(
+	const TFunction<bool()>& InWork,
+	const TFunction<void()>& InInitialize,
+	const TFunction<void()>& InFinalize)
 	: ContinueRun(true)
 	, Work(InWork)
+	, Initialize(InInitialize)
+	, Finalize(InFinalize)
 	, _waitEvent(nullptr)
 {
 	_waitEvent = FPlatformProcess::GetSynchEventFromPool(false);
@@ -22,23 +28,42 @@ FWCWorkerThread::~FWCWorkerThread()
 
 uint32 FWCWorkerThread::Run()
 {
-	while (ContinueRun)
+	try
+    {
+		Initialize();
+
+		while (ContinueRun)
+		{
+			if (_waitEvent)
+			{
+				_waitEvent->Wait(100);
+			}
+			
+			if (!ContinueRun)
+			{
+				break;
+			}
+			
+			if (!Work())
+			{
+				break;
+			}
+		}
+
+		Finalize();
+    }
+	catch (const std::exception& e)
 	{
-		if (_waitEvent)
-		{
-			_waitEvent->Wait(100);
-		}
-		
-		if (!ContinueRun)
-		{
-			break;
-		}
-		
-		if (!Work())
-		{
-			return 0;
-		}
+		WC_LOG(Error, TEXT("Worker thread error: %hs"), e.what());
+		Finalize();
+		return 1;
 	}
+	catch (...)
+	{
+		WC_LOG(Error, TEXT("Error in worker thread"));
+		Finalize();
+		return 2;
+	}	
 	
 	return 0;
 }
