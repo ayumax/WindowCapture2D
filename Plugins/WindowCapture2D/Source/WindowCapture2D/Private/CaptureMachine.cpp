@@ -15,7 +15,7 @@ UCaptureMachine::UCaptureMachine()
 {
 }
 
-UTexture2D* UCaptureMachine::Start()
+void UCaptureMachine::Start()
 {
 	_TickHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &UCaptureMachine::TickCapture), 1.0f / static_cast<float>(Properties.FrameRate));
 	
@@ -25,8 +25,8 @@ UTexture2D* UCaptureMachine::Start()
 
 	if (Properties.CaptureTargetTitle.IsEmpty())
 	{
-		WC_LOG(Log, "CaptureTargetTitle is empty : %s", *Properties.CaptureTargetTitle);
-		return nullptr;
+		WC_LOG(Warning, "CaptureTargetTitle is empty : %s", *Properties.CaptureTargetTitle);
+		return;
 	}
 
 	::EnumWindows([](HWND hwnd, LPARAM lParam) -> BOOL
@@ -37,17 +37,11 @@ UTexture2D* UCaptureMachine::Start()
 
 	if (!m_TargetWindow || !::IsWindow(m_TargetWindow))
 	{
-		WC_LOG(Log, "Target window not found : %s", *Properties.CaptureTargetTitle);
-		return nullptr;
+		WC_LOG(Warning, "Target window not found : %s", *Properties.CaptureTargetTitle);
+		return;
 	}
 
 	m_Session->Start(m_TargetWindow);
-
-	GetWindowSize();
-	
-	ReCreateTexture();
-	
-	return TextureTarget;
 }
 
 void UCaptureMachine::Dispose()

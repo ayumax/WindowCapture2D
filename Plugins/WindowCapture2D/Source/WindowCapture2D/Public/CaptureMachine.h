@@ -30,7 +30,7 @@ public:
 	UCaptureMachine();
 
 	UFUNCTION(BlueprintCallable, Category = WindowCapture2D)
-	virtual UTexture2D* Start();
+	virtual void Start();
 
 	UFUNCTION(BlueprintCallable, Category = WindowCapture2D)
 	virtual void Dispose();
