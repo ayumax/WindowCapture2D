@@ -1,7 +1,7 @@
 {
   "FileVersion": 3,
-  "Version": 202,
-  "VersionName": "2.0.2",
+  "Version": 203,
+  "VersionName": "2.0.3",
   "FriendlyName": "WindowCapture2D",
   "Description": "Library for capturing and displaying windows in real time with UnrealEngine",
   "Category": "Programming",
