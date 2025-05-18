@@ -43,7 +43,7 @@ bool WindowCaptureSession::GetFrameInfo(WCFrameDesc* OutDesc) const
 {
 	if (m_captureItem)
 	{
-		auto size = m_captureItem.Size();
+		auto size = m_captureSize;
 		OutDesc->width = size.Width;
 		OutDesc->height = size.Height;
 		OutDesc->stride = size.Width * 4;
@@ -127,6 +127,7 @@ void WindowCaptureSession::InitializeWinRTCaptureResources()
 	const auto session = framePool.CreateCaptureSession(item);
 
 	m_captureItem = item;
+	m_captureSize = item.Size();
 	m_framePool = framePool;
 	m_session = session;
 
@@ -156,8 +157,7 @@ FWCWorkerThread::EWorkState WindowCaptureSession::CaptureWork()
 
 		if (m_captureItem)
 		{
-			auto itemSize = m_captureItem.Size();
-			if (itemSize.Width != static_cast<int>(desc.Width) || itemSize.Height != static_cast<int>(desc.Height))
+			if (m_captureSize.Width != static_cast<int>(desc.Width) || m_captureSize.Height != static_cast<int>(desc.Height))
 			{
 				m_frameArrivedRevoker.revoke();
 				m_framePool.Close();
@@ -308,6 +308,7 @@ void WindowCaptureSession::Stop()
 	m_session = nullptr;
 	m_framePool = nullptr;
 	m_captureItem = nullptr;
+	m_captureSize = {};
 	m_d3dDevice = nullptr;
 	m_d3dContext = nullptr;
 	m_stagingTexture = nullptr;	
