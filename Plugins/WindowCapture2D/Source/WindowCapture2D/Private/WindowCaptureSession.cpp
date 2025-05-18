@@ -157,6 +157,7 @@ FWCWorkerThread::EWorkState WindowCaptureSession::CaptureWork()
 
 		if (m_captureItem)
 		{
+			m_captureSize = m_captureItem.Size();
 			if (m_captureSize.Width != static_cast<int>(desc.Width) || m_captureSize.Height != static_cast<int>(desc.Height))
 			{
 				m_framePool.Close();
@@ -249,10 +250,16 @@ int WindowCaptureSession::Start(HWND hWnd)
             InitializeWinRTCaptureResources();
 		},
 		[this]() {
+			if (m_session)
+			{
+				m_session.Close();
+			}
+			
 			if (m_framePool)
 			{
 				m_framePool.Close();
-			}		
+			}
+			
 			m_session = nullptr;
 			m_framePool = nullptr;
 			m_captureItem = nullptr;
@@ -297,11 +304,6 @@ void WindowCaptureSession::Stop()
 		{
 			delete m_workerThread;
 			m_workerThread = nullptr;
-		}
-
-		if (m_session)
-		{
-			m_session.Close();
 		}
 	}
 	catch (...)
