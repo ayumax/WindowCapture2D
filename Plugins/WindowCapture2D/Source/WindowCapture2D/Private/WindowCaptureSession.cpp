@@ -159,7 +159,6 @@ FWCWorkerThread::EWorkState WindowCaptureSession::CaptureWork()
 		{
 			if (m_captureSize.Width != static_cast<int>(desc.Width) || m_captureSize.Height != static_cast<int>(desc.Height))
 			{
-				m_frameArrivedRevoker.revoke();
 				m_framePool.Close();
 				m_session.Close();
 				InitializeWinRTCaptureResources();
@@ -249,7 +248,19 @@ int WindowCaptureSession::Start(HWND hWnd)
 			InitializeCaptureResources();
             InitializeWinRTCaptureResources();
 		},
-		[this]() { 
+		[this]() {
+			if (m_framePool)
+			{
+				m_framePool.Close();
+			}		
+			m_session = nullptr;
+			m_framePool = nullptr;
+			m_captureItem = nullptr;
+			m_captureSize = {};
+			m_d3dDevice = nullptr;
+			m_d3dContext = nullptr;
+			m_stagingTexture = nullptr;
+			
 			winrt::uninit_apartment(); 
 			WC_LOG(Log, TEXT("Worker thread COM uninitialized"));
 		});
@@ -269,8 +280,6 @@ void WindowCaptureSession::Stop()
 	
 	try
 	{
-		m_frameArrivedRevoker.revoke();
-
 		if (m_workerThread)
 		{
 			m_workerThread->Stop();
@@ -294,23 +303,10 @@ void WindowCaptureSession::Stop()
 		{
 			m_session.Close();
 		}
-
-		if (m_framePool)
-		{
-			m_framePool.Close();
-		}		
 	}
 	catch (...)
 	{
 		WC_LOG(Warning, TEXT("Capture session stop failed"));
 	}
-
-	m_session = nullptr;
-	m_framePool = nullptr;
-	m_captureItem = nullptr;
-	m_captureSize = {};
-	m_d3dDevice = nullptr;
-	m_d3dContext = nullptr;
-	m_stagingTexture = nullptr;	
 }
 #endif
