@@ -5,25 +5,18 @@
 #include "WindowCapture2DMacros.h"
 
 FWCWorkerThread::FWCWorkerThread(
-	const TFunction<bool()>& InWork,
+	const TFunction<EWorkState()>& InWork,
 	const TFunction<void()>& InInitialize,
 	const TFunction<void()>& InFinalize)
 	: ContinueRun(true)
 	, Work(InWork)
 	, Initialize(InInitialize)
 	, Finalize(InFinalize)
-	, _waitEvent(nullptr)
 {
-	_waitEvent = FPlatformProcess::GetSynchEventFromPool(false);
 }
 
 FWCWorkerThread::~FWCWorkerThread()
 {
-	if (_waitEvent)
-	{
-		FPlatformProcess::ReturnSynchEventToPool(_waitEvent);
-		_waitEvent = nullptr;
-	}
 }
 
 uint32 FWCWorkerThread::Run()
@@ -31,21 +24,23 @@ uint32 FWCWorkerThread::Run()
 	try
     {
 		Initialize();
-
+		
 		while (ContinueRun)
-		{
-			if (_waitEvent)
-			{
-				_waitEvent->Wait(100);
-			}
-			
+		{			
 			if (!ContinueRun)
 			{
 				break;
 			}
-			
-			if (!Work())
+
+			switch (auto state = Work())
 			{
+			case EWorkState::Working:
+				break;
+			case EWorkState::Wait:
+				FPlatformProcess::Sleep(0.001f);
+				break;
+			case EWorkState::Stop:
+				ContinueRun = false;
 				break;
 			}
 		}
@@ -71,12 +66,7 @@ uint32 FWCWorkerThread::Run()
 void FWCWorkerThread::Stop()
 {
 	ContinueRun = false;
-
-	if (_waitEvent)
-	{
-		_waitEvent->Trigger();
-	}
-
+	
 	FRunnable::Stop();
 }
 
@@ -85,20 +75,7 @@ void FWCWorkerThread::Exit()
 	if (ContinueRun)
 	{
 		ContinueRun = false;
-    
-    	if (_waitEvent)
-    	{
-    		_waitEvent->Trigger();
-    	}
 	}
 
 	FRunnable::Exit();
-}
-
-void FWCWorkerThread::WakeUp()
-{	
-	if (_waitEvent)
-	{
-		_waitEvent->Trigger();
-	}
 }
