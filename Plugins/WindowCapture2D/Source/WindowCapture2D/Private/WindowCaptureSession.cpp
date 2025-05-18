@@ -10,7 +10,6 @@
 #include <windows.graphics.capture.interop.h>
 #include <stdexcept>
 #include <winrt/Windows.Foundation.h>
-#include "Utils/WCWorkerThread.h"
 #include "HAL/RunnableThread.h"
 #include "WindowCapture2DMacros.h"
 
@@ -131,29 +130,19 @@ void WindowCaptureSession::InitializeWinRTCaptureResources()
 	m_framePool = framePool;
 	m_session = session;
 
-	m_frameArrivedRevoker = m_framePool.FrameArrived(winrt::auto_revoke, [this](auto&&, auto&&)
-	{
-		FScopeLock lock(&m_mutex_thread);
-
-		if (m_workerThread)
-		{
-			m_workerThread->WakeUp();
-		}
-	});
-
 	m_session.StartCapture();
 }
 
-bool WindowCaptureSession::CaptureWork()
+FWCWorkerThread::EWorkState WindowCaptureSession::CaptureWork()
 {
-	if (m_state != CaptureState::Running) { return false; }
+	if (m_state != CaptureState::Running) { return FWCWorkerThread::EWorkState::Stop; }
 
 	FScopeLock lockThread(&m_mutex_thread);
 	
 	try
 	{
 		auto frame = m_framePool.TryGetNextFrame();
-		if (!frame) { return true; }
+		if (!frame) { return FWCWorkerThread::EWorkState::Wait; }
 
 		auto surface = frame.Surface();
 
@@ -174,7 +163,7 @@ bool WindowCaptureSession::CaptureWork()
 				m_framePool.Close();
 				m_session.Close();
 				InitializeWinRTCaptureResources();
-				return true;
+				return FWCWorkerThread::EWorkState::Wait;
 			}
 		}
 
@@ -198,7 +187,7 @@ bool WindowCaptureSession::CaptureWork()
 
 		{
 			FScopeLock lock(&m_mutex_buffer);
-			if (m_state != CaptureState::Running) { return false; }
+			if (m_state != CaptureState::Running) { return FWCWorkerThread::EWorkState::Stop; }
 
 			if (m_buffer.Num() != bufferSize)
 			{
@@ -224,7 +213,7 @@ bool WindowCaptureSession::CaptureWork()
 		WC_LOG(Warning, TEXT("Capture session work failed"));
 	}
 
-	return true;
+	return FWCWorkerThread::EWorkState::Working;
 }
 
 int WindowCaptureSession::Start(HWND hWnd)
@@ -248,28 +237,23 @@ int WindowCaptureSession::Start(HWND hWnd)
 
 	m_state = CaptureState::Running;
 
-	try
-	{
-		InitializeCaptureResources();
-		InitializeWinRTCaptureResources();
-	}
-	catch (...)
-	{
-		WC_LOG(Warning, TEXT("Capture session start failed"));
-
-		return -2;
-	}
-
 	m_workerThread = new FWCWorkerThread(
-		[this]() { return CaptureWork(); },
-		[]() { 
-			winrt::init_apartment(winrt::apartment_type::single_threaded);
-			UE_LOG(LogTemp, Log, TEXT("Worker thread COM initialized (STA)"));
+		[this]()
+		{
+			return CaptureWork();
 		},
-		[]() { 
+		[this]() { 
+			winrt::init_apartment(winrt::apartment_type::multi_threaded);
+			WC_LOG(Log, TEXT("Worker thread COM initialized"));
+			
+			InitializeCaptureResources();
+            InitializeWinRTCaptureResources();
+		},
+		[this]() { 
 			winrt::uninit_apartment(); 
-			UE_LOG(LogTemp, Log, TEXT("Worker thread COM uninitialized"));
+			WC_LOG(Log, TEXT("Worker thread COM uninitialized"));
 		});
+		
 	m_workerThreadHandle = FRunnableThread::Create(m_workerThread, TEXT("WindowCaptureSessionWorker"));
 
 	return 0;
