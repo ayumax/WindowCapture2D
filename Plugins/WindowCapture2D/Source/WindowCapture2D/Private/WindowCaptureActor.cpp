@@ -29,7 +29,7 @@ void AWindowCaptureActor::BeginDestroy()
 	}
 }
 
-UTexture2D* AWindowCaptureActor::Start()
+void AWindowCaptureActor::Start()
 {
 	if (CaptureMachine)
 	{
@@ -42,7 +42,7 @@ UTexture2D* AWindowCaptureActor::Start()
 
 	CaptureMachine->ChangeTexture.AddDynamic(this, &AWindowCaptureActor::OnChangeTexture);
 	
-	return CaptureMachine->Start();
+	CaptureMachine->Start();
 }
 
 void AWindowCaptureActor::OnChangeTexture(UTexture2D* _NewTexture)

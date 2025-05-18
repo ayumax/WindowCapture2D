@@ -33,7 +33,7 @@ void UWindowCaptureWidget::BeginDestroy()
 }
 
 
-UTexture2D* UWindowCaptureWidget::Start()
+void UWindowCaptureWidget::Start()
 {
 	if (CaptureMachine)
 	{
@@ -45,7 +45,7 @@ UTexture2D* UWindowCaptureWidget::Start()
 	CaptureMachine->Properties = Properties;
 
 	CaptureMachine->ChangeTexture.AddDynamic(this, &UWindowCaptureWidget::OnChangeTexture);
-	return CaptureMachine->Start();
+	CaptureMachine->Start();
 }
 
 void UWindowCaptureWidget::OnChangeTexture(UTexture2D* _NewTexture)

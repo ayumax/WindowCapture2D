@@ -10,8 +10,16 @@
 class WINDOWCAPTURE2D_API FWCWorkerThread : public FRunnable
 {
 public:
+	enum class EWorkState : uint8
+	{
+		Working,
+		Stop,
+		Wait
+	};
+	
+public:
 	FWCWorkerThread(
-		const TFunction<bool()>& InWork,
+		const TFunction<EWorkState()>& InWork,
 		const TFunction<void()>& InInitialize = []() {},
 		const TFunction<void()>& InFinalize = []() {}
 	);
@@ -20,14 +28,11 @@ public:
 	virtual uint32 Run() override final;
 	virtual void Stop() override final;
 	virtual void Exit() override;
-	void WakeUp();
 
 	FThreadSafeBool ContinueRun{true};
 
 private:
-	TFunction<bool()> Work;
+	TFunction<EWorkState()> Work;
 	TFunction<void()> Initialize;
 	TFunction<void()> Finalize;
-	
-	FEvent* _waitEvent;
 };

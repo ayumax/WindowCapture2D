@@ -17,6 +17,7 @@
 #include "Windows/PostWindowsApi.h"
 #include "Windows/HideWindowsPlatformAtomics.h"
 #include "Windows/HideWindowsPlatformTypes.h"
+#include "WCWorkerThread.h"
 
 class WindowCaptureSession;
 
@@ -46,7 +47,7 @@ public:
 	TArray<uint8> m_buffer;
 private:
 
-	bool CaptureWork();
+	FWCWorkerThread::EWorkState CaptureWork();
 	
 	HWND m_hwnd;
 	FCriticalSection m_mutex_buffer;
