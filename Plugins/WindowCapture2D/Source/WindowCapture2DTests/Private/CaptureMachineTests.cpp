@@ -4,6 +4,9 @@
 #include "CaptureMachine.h"
 #include "Engine/Texture2D.h"
 #include "Tests/AutomationCommon.h"
+#include "WindowCapture2DTestHelper.h"
+
+#define DUMMY_WINDOW_NAME L"DummyWindowForCapture"
 
 // Test: UCaptureMachine instance creation and Dispose
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCaptureMachineBasicTest, "WindowCapture2D.CaptureMachine.BasicLifecycle",
@@ -25,8 +28,10 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCaptureMachineTextureTargetSetTest,
 
 bool FCaptureMachineTextureTargetSetTest::RunTest(const FString& Parameters)
 {
+	HWND dummyWnd = WindowCapture2DTestHelper::CreateWindowForCapture(DUMMY_WINDOW_NAME);
+	
 	UCaptureMachine* CaptureMachine = NewObject<UCaptureMachine>();
-	CaptureMachine->Properties.CaptureTargetTitle = TEXT("WindowCapture2D");
+	CaptureMachine->Properties.CaptureTargetTitle = DUMMY_WINDOW_NAME;
 	CaptureMachine->Properties.TitleMatchingWindowSearch = ETitleMatchingWindowSearch::PartialMatch;
 
 	CaptureMachine->Start();
@@ -38,9 +43,10 @@ bool FCaptureMachineTextureTargetSetTest::RunTest(const FString& Parameters)
 		TestNotNull(TEXT("TextureTarget should become non-null within timeout"), CaptureMachine->TextureTarget);
 		return true;}));
 
-	ADD_LATENT_AUTOMATION_COMMAND(FFunctionLatentCommand([this, CaptureMachine]()
+	ADD_LATENT_AUTOMATION_COMMAND(FFunctionLatentCommand([this, CaptureMachine, dummyWnd]()
 	{
 		CaptureMachine->Dispose();
+		DestroyWindow(dummyWnd);
 		return true; 
 	}));
 	
@@ -55,7 +61,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCaptureMachineCreateTextureNotFoundTest,
 bool FCaptureMachineCreateTextureNotFoundTest::RunTest(const FString& Parameters)
 {
 	UCaptureMachine* CaptureMachine = NewObject<UCaptureMachine>();
-	CaptureMachine->Properties.CaptureTargetTitle = TEXT("DefinitelyNotExistWindowTitle");
+	CaptureMachine->Properties.CaptureTargetTitle = TEXT("__DefinitelyNotExistWindowTitle__");
 	CaptureMachine->Properties.TitleMatchingWindowSearch = ETitleMatchingWindowSearch::PerfectMatch;
 	CaptureMachine->Start();
 
@@ -82,11 +88,13 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCaptureMachineFindTargetWindowTest,
 
 bool FCaptureMachineFindTargetWindowTest::RunTest(const FString& Parameters)
 {
+	HWND dummyWnd = WindowCapture2DTestHelper::CreateWindowForCapture(DUMMY_WINDOW_NAME);
+	
 	UCaptureMachine* CaptureMachine = NewObject<UCaptureMachine>();
 	HWND DummyHwnd = nullptr; // NOTE: Replace this with a valid HWND in integration test
 
 	// Test for each matching type
-	CaptureMachine->Properties.CaptureTargetTitle = TEXT("WindowCapture2D");
+	CaptureMachine->Properties.CaptureTargetTitle = DUMMY_WINDOW_NAME;
 	CaptureMachine->Properties.TitleMatchingWindowSearch = ETitleMatchingWindowSearch::PartialMatch;
 	CaptureMachine->Start();
 
@@ -107,6 +115,8 @@ bool FCaptureMachineFindTargetWindowTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("BackwardMatch should return true for dummy hwnd"), resultBackward);
 	TestTrue(TEXT("RegularExpression should return true for dummy hwnd"), resultRegex);
 	CaptureMachine->Dispose();
+
+	DestroyWindow(dummyWnd);
 	return true;
 }
 #endif
