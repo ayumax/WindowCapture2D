@@ -23,7 +23,10 @@ uint32 FWCWorkerThread::Run()
 {
 	try
     {
-		Initialize();
+		if (ContinueRun)
+		{
+			Initialize();
+		}
 		
 		while (ContinueRun)
 		{			
