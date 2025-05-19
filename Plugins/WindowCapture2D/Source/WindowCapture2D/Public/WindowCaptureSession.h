@@ -70,7 +70,7 @@ private:
 	winrt::Windows::Graphics::Capture::Direct3D11CaptureFramePool m_framePool{nullptr};
 	winrt::Windows::Graphics::Capture::GraphicsCaptureSession m_session{nullptr};
 
-	winrt::Windows::Graphics::SizeInt32 m_captureSize = {};
+	winrt::Windows::Graphics::SizeInt32 m_captureSize = {0, 0 };
 
 
 	void InitializeCaptureResources();

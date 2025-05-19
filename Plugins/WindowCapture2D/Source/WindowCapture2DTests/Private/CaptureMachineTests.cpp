@@ -96,7 +96,6 @@ bool FCaptureMachineFindTargetWindowTest::RunTest(const FString& Parameters)
 	// Test for each matching type
 	CaptureMachine->Properties.CaptureTargetTitle = DUMMY_WINDOW_NAME;
 	CaptureMachine->Properties.TitleMatchingWindowSearch = ETitleMatchingWindowSearch::PartialMatch;
-	CaptureMachine->Start();
 
 	bool resultPerfect = CaptureMachine->FindTargetWindow(DummyHwnd);
 	CaptureMachine->Properties.TitleMatchingWindowSearch = ETitleMatchingWindowSearch::ForwardMatch;
