@@ -43,7 +43,7 @@ bool WindowCaptureSession::GetFrameInfo(WCFrameDesc* OutDesc) const
 {
 	if (m_captureItem)
 	{
-		auto size = m_captureItem.Size();
+		auto size = m_captureSize;
 		OutDesc->width = size.Width;
 		OutDesc->height = size.Height;
 		OutDesc->stride = size.Width * 4;
@@ -127,6 +127,7 @@ void WindowCaptureSession::InitializeWinRTCaptureResources()
 	const auto session = framePool.CreateCaptureSession(item);
 
 	m_captureItem = item;
+	m_captureSize = item.Size();
 	m_framePool = framePool;
 	m_session = session;
 
@@ -156,10 +157,9 @@ FWCWorkerThread::EWorkState WindowCaptureSession::CaptureWork()
 
 		if (m_captureItem)
 		{
-			auto itemSize = m_captureItem.Size();
-			if (itemSize.Width != static_cast<int>(desc.Width) || itemSize.Height != static_cast<int>(desc.Height))
+			m_captureSize = m_captureItem.Size();
+			if (m_captureSize.Width != static_cast<int>(desc.Width) || m_captureSize.Height != static_cast<int>(desc.Height))
 			{
-				m_frameArrivedRevoker.revoke();
 				m_framePool.Close();
 				m_session.Close();
 				InitializeWinRTCaptureResources();
@@ -249,7 +249,25 @@ int WindowCaptureSession::Start(HWND hWnd)
 			InitializeCaptureResources();
             InitializeWinRTCaptureResources();
 		},
-		[this]() { 
+		[this]() {
+			if (m_session)
+			{
+				m_session.Close();
+			}
+			
+			if (m_framePool)
+			{
+				m_framePool.Close();
+			}
+			
+			m_session = nullptr;
+			m_framePool = nullptr;
+			m_captureItem = nullptr;
+			m_captureSize = {};
+			m_d3dDevice = nullptr;
+			m_d3dContext = nullptr;
+			m_stagingTexture = nullptr;
+			
 			winrt::uninit_apartment(); 
 			WC_LOG(Log, TEXT("Worker thread COM uninitialized"));
 		});
@@ -269,8 +287,6 @@ void WindowCaptureSession::Stop()
 	
 	try
 	{
-		m_frameArrivedRevoker.revoke();
-
 		if (m_workerThread)
 		{
 			m_workerThread->Stop();
@@ -289,27 +305,10 @@ void WindowCaptureSession::Stop()
 			delete m_workerThread;
 			m_workerThread = nullptr;
 		}
-
-		if (m_session)
-		{
-			m_session.Close();
-		}
-
-		if (m_framePool)
-		{
-			m_framePool.Close();
-		}		
 	}
 	catch (...)
 	{
 		WC_LOG(Warning, TEXT("Capture session stop failed"));
 	}
-
-	m_session = nullptr;
-	m_framePool = nullptr;
-	m_captureItem = nullptr;
-	m_d3dDevice = nullptr;
-	m_d3dContext = nullptr;
-	m_stagingTexture = nullptr;	
 }
 #endif
