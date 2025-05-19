@@ -3,57 +3,25 @@
 #include "Misc/AutomationTest.h"
 #include "WindowCaptureSession.h"
 #include <windows.h>
+#include "WindowCapture2DTestHelper.h"
 
-// Helper function to find a window by title prefix
-HWND FindWindowByPrefix(const wchar_t* prefix)
-{
-    HWND hwnd = nullptr;
-    HWND current = nullptr;
-    wchar_t title[256];
-    while ((current = FindWindowExW(nullptr, current, nullptr, nullptr)) != nullptr)
-    {
-        GetWindowTextW(current, title, 256);
-        if (wcsncmp(title, prefix, wcslen(prefix)) == 0)
-        {
-            hwnd = current;
-            break;
-        }
-    }
-    return hwnd;
-}
-
-// Wait for HasNewFrame to become true, processing messages
-bool WaitForNewFrame(WindowCaptureSession& session, int timeoutMs = 2000)
-{
-    const int interval = 10;
-    int elapsed = 0;
-    while (elapsed < timeoutMs)
-    {
-        MSG msg;
-        while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
-        {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
-        if (session.HasNewFrame())
-            return true;
-        Sleep(interval);
-        elapsed += interval;
-    }
-    return false;
-}
+#define DUMMY_WINDOW_NAME L"DummyWindowForCapture"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FWindowCaptureSession_StartStopTest, "WindowCapture2D.WindowCaptureSession.StartStop", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FWindowCaptureSession_StartStopTest::RunTest(const FString& Parameters)
 {
-    HWND hwnd = FindWindowByPrefix(L"WindowCapture2D");
+    HWND dummyWnd = WindowCapture2DTestHelper::CreateWindowForCapture(DUMMY_WINDOW_NAME);
+    
+    HWND hwnd = WindowCapture2DTestHelper::FindWindowByPrefix(DUMMY_WINDOW_NAME);
     TestNotNull(TEXT("Target window should exist"), hwnd);
     WindowCaptureSession session;
     int result = session.Start(hwnd);
     TestEqual(TEXT("Start returns 0 (success)"), result, 0);
-    WaitForNewFrame(session);
+    WindowCapture2DTestHelper::WaitForNewFrame(session);
     session.Stop();
+    
+    DestroyWindow(dummyWnd);
     return true;
 }
 
@@ -61,15 +29,20 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FWindowCaptureSession_HasNewFrameTest, "WindowC
 
 bool FWindowCaptureSession_HasNewFrameTest::RunTest(const FString& Parameters)
 {
-    HWND hwnd = FindWindowByPrefix(L"WindowCapture2D");
+    HWND dummyWnd = WindowCapture2DTestHelper::CreateWindowForCapture(DUMMY_WINDOW_NAME);
+
+    HWND hwnd = WindowCapture2DTestHelper::FindWindowByPrefix(DUMMY_WINDOW_NAME);
     TestNotNull(TEXT("Target window should exist"), hwnd);
     WindowCaptureSession session;
     session.Start(hwnd);
-    bool hasFrame = WaitForNewFrame(session);
+    bool hasFrame = WindowCapture2DTestHelper::WaitForNewFrame(session);
     TestTrue(TEXT("HasNewFrame should be true after start and wait"), hasFrame);
     session.Stop();
     hasFrame = session.HasNewFrame();
     TestFalse(TEXT("HasNewFrame should be false after stop"), hasFrame);
+    
+    DestroyWindow(dummyWnd);
+    
     return true;
 }
 
@@ -77,11 +50,13 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FWindowCaptureSession_GetFrameInfoTest, "Window
 
 bool FWindowCaptureSession_GetFrameInfoTest::RunTest(const FString& Parameters)
 {
-    HWND hwnd = FindWindowByPrefix(L"WindowCapture2D");
+    HWND dummyWnd = WindowCapture2DTestHelper::CreateWindowForCapture(DUMMY_WINDOW_NAME);
+
+    HWND hwnd = WindowCapture2DTestHelper::FindWindowByPrefix(DUMMY_WINDOW_NAME);
     TestNotNull(TEXT("Target window should exist"), hwnd);
     WindowCaptureSession session;
     session.Start(hwnd);
-    WaitForNewFrame(session);
+    WindowCapture2DTestHelper::WaitForNewFrame(session);
     WCFrameDesc desc;
     bool ok = session.GetFrameInfo(&desc);
     TestTrue(TEXT("GetFrameInfo should return true"), ok);
@@ -89,6 +64,8 @@ bool FWindowCaptureSession_GetFrameInfoTest::RunTest(const FString& Parameters)
     TestTrue(TEXT("Height should be > 0"), desc.height > 0);
     TestEqual(TEXT("BytesPerPixel should be 4"), desc.bytesPerPixel, 4);
     session.Stop();
+
+    DestroyWindow(dummyWnd);
     return true;
 }
 
@@ -100,7 +77,7 @@ bool FWindowCaptureSession_StartWithInvalidHwndTest::RunTest(const FString& Para
     WindowCaptureSession session;
     int result = session.Start(hwnd);
     TestEqual(TEXT("Start should fail with invalid hwnd"), result, -1);
-    WaitForNewFrame(session);
+    WindowCapture2DTestHelper::WaitForNewFrame(session);
     session.Stop();
     return true;
 }
