@@ -41,21 +41,10 @@ bool WindowCaptureSession::HasNewFrame() const
 
 bool WindowCaptureSession::GetFrameInfo(WCFrameDesc* OutDesc) const
 {
-	if (m_captureItem)
-	{
-		auto size = m_captureSize;
-		OutDesc->width = size.Width;
-		OutDesc->height = size.Height;
-		OutDesc->stride = size.Width * 4;
-		OutDesc->bytesPerPixel = 4;
-	}
-	else
-	{
-		OutDesc->width = 0;
-		OutDesc->height = 0;
-		OutDesc->stride = 0;
-		OutDesc->bytesPerPixel = 0;
-	}
+	OutDesc->width = m_captureSize.Width;
+	OutDesc->height = m_captureSize.Height;
+	OutDesc->stride = m_captureSize.Width * 4;
+	OutDesc->bytesPerPixel = m_captureSize.Width == 0 ? 0 : 4;
 
 	return true;
 }
